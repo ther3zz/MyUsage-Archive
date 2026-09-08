@@ -98,7 +98,11 @@ tagged releases for updates.
 
    Run from inside a checkout it installs that checkout instead. `DRY_RUN=1`
    previews, `REF=<branch>` picks a branch, `REPO_URL=` points it at a
-   mirror (Forgejo/Gitea tarball layout is understood too). Keep the repository itself
+   mirror (Forgejo/Gitea tarball layout is understood too). `--uninstall`
+   removes the component and keeps the archive databases under
+   `<config>/myusage_archive/`; add `--purge-archive` to delete those too.
+   Delete the integration in Home Assistant first, then uninstall, then
+   restart. Keep the repository itself
    *outside* the config directory: HA scans `custom_components/` for
    integrations and only wants that one folder. Home Assistant installs the
    one third-party dependency (`beautifulsoup4`) from PyPI itself on first

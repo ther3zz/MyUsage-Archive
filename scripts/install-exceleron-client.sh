@@ -4,7 +4,16 @@
 # copies the one folder HA needs. Needs only bash, cp/find (coreutils) and
 # git or curl+tar.
 #
-#   install-exceleron-client.sh [HA_CONFIG_DIR]      (default: /root/homeassistant)
+#   install-exceleron-client.sh [HA_CONFIG_DIR]                 install or update
+#   install-exceleron-client.sh --uninstall [HA_CONFIG_DIR]     remove the component
+#   install-exceleron-client.sh --uninstall --purge-archive ... also delete the archives
+#
+# Uninstall removes custom_components/myusage_archive only. The archive
+# databases under <config>/myusage_archive/ are the product (the portal
+# forgets 15-minute data after a week) and are kept unless --purge-archive
+# is given. Remove the integration in Home Assistant first (Settings ->
+# Devices & services -> MyUsage Archive -> Delete), which also drops that
+# entry's archive, then uninstall, then restart.
 #
 # One-liner on the Home Assistant box:
 #   curl -fsSL https://raw.githubusercontent.com/ther3zz/MyUsage-Archive/main/scripts/install-exceleron-client.sh \
@@ -16,7 +25,7 @@
 #                    mirror; both tarball layouts are understood)
 #   CACHE_DIR=...    where the checkout lives (default: ~/.cache/exceleron-client)
 #   SRC_DIR=...      skip fetching; install from this checkout instead
-#   DRY_RUN=1        show what would change, copy nothing
+#   DRY_RUN=1        show what would change, touch nothing (also --dry-run)
 #
 # When the script is run from inside a checkout, that checkout is used as the
 # source (developer mode) and nothing is fetched.
@@ -26,7 +35,24 @@
 # Restart Home Assistant afterwards.
 set -euo pipefail
 
-CONFIG_DIR="${1:-/root/homeassistant}"
+MODE="install"
+PURGE=0
+CONFIG_DIR=""
+for arg in "$@"; do
+  case "$arg" in
+    --uninstall)     MODE="uninstall" ;;
+    --purge-archive) PURGE=1 ;;
+    --dry-run)       DRY_RUN=1 ;;
+    -h|--help)
+      if [ -f "$0" ]; then sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'
+      else echo "usage: install-exceleron-client.sh [--uninstall [--purge-archive]] [--dry-run] [HA_CONFIG_DIR]"; fi
+      exit 0 ;;
+    -*)              echo "unknown option: $arg" >&2; exit 2 ;;
+    *)               CONFIG_DIR="$arg" ;;
+  esac
+done
+CONFIG_DIR="${CONFIG_DIR:-/root/homeassistant}"
+DRY_RUN="${DRY_RUN:-0}"
 REPO_URL="${REPO_URL:-https://github.com/ther3zz/MyUsage-Archive.git}"
 REF="${REF:-main}"
 CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/exceleron-client}"
@@ -81,12 +107,7 @@ fetch_repo() {
   curl -fsSL "$tarball" | tar -xz -C "$CACHE_DIR" --strip-components=1
 }
 
-# ---------------------------------------------------------------- checks
-
-SRC_ROOT="$(resolve_source)"
-SRC="$SRC_ROOT/$COMPONENT"
-[ -f "$SRC/manifest.json" ] || die "component not found at $SRC"
-[ -f "$SRC/vendor/myusage_archive/archive.py" ] || die "vendored library missing in $SRC"
+# ---------------------------------------------------------------- target
 
 # Escalate only when the config dir is not ours (e.g. /root/homeassistant).
 SUDO=""
@@ -98,6 +119,39 @@ $SUDO test -f "$CONFIG_DIR/configuration.yaml" \
 
 DEST_PARENT="$CONFIG_DIR/custom_components"
 DEST="$DEST_PARENT/myusage_archive"
+ARCHIVES="$CONFIG_DIR/myusage_archive"
+
+# ------------------------------------------------------------- uninstall
+
+if [ "$MODE" = "uninstall" ]; then
+  if $SUDO test -d "$DEST"; then
+    log "removing $DEST"
+    [ "$DRY_RUN" = "1" ] || $SUDO rm -rf "$DEST"
+  else
+    log "$DEST is not installed"
+  fi
+  if $SUDO test -d "$ARCHIVES"; then
+    if [ "$PURGE" = "1" ]; then
+      log "removing archives in $ARCHIVES (--purge-archive)"
+      $SUDO ls -la "$ARCHIVES" 2>/dev/null || true
+      [ "$DRY_RUN" = "1" ] || $SUDO rm -rf "$ARCHIVES"
+    else
+      log "keeping archives in $ARCHIVES (pass --purge-archive to delete them):"
+      $SUDO ls -la "$ARCHIVES" 2>/dev/null || true
+    fi
+  fi
+  [ "$DRY_RUN" = "1" ] && echo "dry run: nothing removed"
+  echo "restart Home Assistant to finish. If the integration is still configured,"
+  echo "delete it under Settings -> Devices & services first (or after the restart)."
+  exit 0
+fi
+
+# ---------------------------------------------------------------- source
+
+SRC_ROOT="$(resolve_source)"
+SRC="$SRC_ROOT/$COMPONENT"
+[ -f "$SRC/manifest.json" ] || die "component not found at $SRC"
+[ -f "$SRC/vendor/myusage_archive/archive.py" ] || die "vendored library missing in $SRC"
 
 if [ -d "$SRC_ROOT/.git" ] && [ -n "$(git -C "$SRC_ROOT" status --porcelain -- custom_components 2>/dev/null)" ]; then
   echo "warning: uncommitted changes under custom_components/ will be installed" >&2
@@ -112,7 +166,7 @@ log "installing myusage_archive ${VERSION:-?} ($COMMIT) -> $DEST"
 # next to the destination and swapped in, so HA never sees a half-copied
 # folder, and stale files from an older version cannot linger.
 
-if [ "${DRY_RUN:-0}" = "1" ]; then
+if [ "$DRY_RUN" = "1" ]; then
   if $SUDO test -d "$DEST"; then
     echo "would replace $DEST with $SRC; differences:"
     $SUDO diff -rq -x __pycache__ -x '*.pyc' "$SRC" "$DEST" 2>/dev/null \
