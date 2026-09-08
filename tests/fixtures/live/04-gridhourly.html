@@ -1,0 +1,1966 @@
+
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+		<meta charset="utf-8" />
+			
+		
+			<link rel="stylesheet" type="text/css" media="screen, print, projection" href="include/screen/script/reset.css" />
+			<link rel="stylesheet" type="text/css" media="screen, print, projection" href="include/screen/script/core.css?v=1.2" />
+		
+			<script type="text/javascript" src="include/screen/script/jquery-1.5.min.js"></script>
+			<script type="text/javascript" src="include/screen/script/jQuery-Popover-Plugin-master/jquery.popover.js"></script>
+			<link rel="stylesheet" type="text/css" media="screen, print, projection" href="include/screen/script/jQuery-Popover-Plugin-master/jquery.popover.css" />
+		
+		
+		<script src="include/screen/script/tinybox.js" type=text/javascript></script>
+		<script src="include/screen/script/popup.js?v=1.3" type=text/javascript></script>
+		<script src="include/screen/script/function.js" type=text/javascript></script>
+		<script src="include/screen/script/table.js?v=1.2" type=text/javascript></script>
+		<script src="include/screen/script/form.js?v=1.3" type=text/javascript></script>
+		<script src="include/screen/script/formValidate.js" type=text/javascript></script>
+		<script src="include/screen/script/swfobject.js" type=text/javascript></script>
+		<script src="include/screen/script/amcharts/amcharts.js" type=text/javascript></script>
+		<script src="include/screen/script/amcharts/serial.js" type=text/javascript></script>
+		
+		<meta http-equiv="expires" content="0">
+		<meta http-equiv="pragma" content="no-cache">
+		<meta http-equiv="cache-control" content="no-store, no-cache, must-revalidate, post-check=0, pre-check=0">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Usage History</title>
+		</head>
+		
+		
+			<body id="">
+				<a class="screen-reader-text" href="#content">Skip to main content</a>
+			
+				 
+					<div id="wrapper">
+					<div class="container">
+					<div id="header"><div id="logo"><img src="image/logo/flouc.big.gif" border=0 alt="Utility Logo"></div><div id="account-navigation">
+
+    	<div class="details">
+
+        	<b>Customer,Sample</b><br /><br />
+
+          Account: ACCT001
+
+      </div>
+
+      <div class="buttons">
+
+        
+
+        
+
+        <a href="/data.cfm?appPage=Postpaid&appPageScreen=User&appPageScreenSub=Logout&appFlow=20260908082212524&" class="logout-btn" alt="logout button" >Logout</a>
+
+      </div>
+
+    </div>
+
+          <script type="text/javascript">
+
+            $(function() {$("#lookup").popover();});
+
+          </script>
+
+
+<div class="clear"></div></div> 
+		
+		<div id="calDiv" style="position:absolute;visibility:hidden;background-color:white;layer-background-color:white;"></div>
+		<script language="JavaScript">document.write(getCalendarStyles());</script>
+		
+					
+		
+
+<div id="navigation">
+
+	<ul>
+
+		<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=Account&appPageScreenSub=&appFlow=20260908082212524&" ><img src="image/format/icon-account.png" width="19" height="20">Account</a></li>
+
+		<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&" class="selected"><img src="image/format/icon-history.png" width="19" height="20">History</a></li>
+
+		<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=Payment&appPageScreenSub=&appFlow=20260908082212524&" ><img src="image/format/icon-payment.png" width="19" height="20">Payment</a></li>
+
+		<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=Settings&appPageScreenSub=&appFlow=20260908082212524&" ><img src="image/format/icon-settings.png" width="19" height="20">Settings</a></li>
+
+		<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=User&appPageScreenSub=&appFlow=20260908082212524&" ><img src="image/format/icon-user.png" width="19" height="20">User</a></li>
+
+</ul></div>
+
+<div id="sub-navigation" ><ul>
+
+	<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&" class="selected">Usage History</a></li>
+
+	<li><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Alert%20History&appFlow=20260908082212524&" >Alert History</a></li>
+
+</ul></div> 
+			<div id="content">
+			<div id="formErrDiv_MeterFilter" role="alert" style="display:none; background: #fff; border: #ff3300 4px solid;color: #ff3300; padding:4px; margin: 0 20px 20px;"></div><form method="post" action="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric" id="MeterFilter" name="MeterFilter">
+<input type="hidden" id="btn2" name="btn2" value="" > 
+
+<div class="groupPanel" style="width:100%; padding: 0px 0px 0px 0px">
+
+<div class="group">
+
+	<h1 class="group-header">Meter Filter</h1>
+
+	<div class="group-content">
+<table>
+<tr>
+	<td><label for="MeterID">Meter:</label>&nbsp;</td><td><select class="cinput" id="MeterID" name="MeterID"   >
+	<option value="ID001" selected>MTR001 - Electric
+</select></td>
+	<td><input  class="cinput" type="button" id="SubmitButtonMeterFilter" name="SubmitButtonMeterFilter" value="Load" onclick="submitForm('MeterFilter','SubmitButtonMeterFilter',[['MeterID','isRequired','','Meter:','0']])" >
+<input type="hidden" name="action" value="Load" ><input type="hidden" name="SubmitButtonValidateMeterFilter" value="[['MeterID','isRequired','','Meter:','0']]" ></td>
+	<td></td>
+	<td><input class="cinput" type="button" id="btn" name="buttonURL" value="Next Week" onclick="javascript:window.location.href='/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&MeterID=ID001&EndID=14&StartID=8';">
+</td>
+</tr>
+</table>
+
+
+	</div>
+
+</div>
+
+</div>
+
+<div class="clear"></div> <input type="hidden" id="cf_CSRFToken" name="cf_CSRFToken" value="66ACC9BF16DF113D3CC84A6B62D57ACF54817D41" ><input type="hidden" id="cf_CSRFToken_web" name="cf_CSRFToken_web" value="ws8" ></form> 
+
+<div class="groupPanel" style="width:100%; padding: 0px 0px 0px 0px">
+
+<div class="group">
+
+	<h1 class="group-header">Hourly Chart for <font size="+1">09/06</font></h1>
+
+	<div class="group-content"> 
+				<div id="jscontent1" style="width: 940px; height: 200px;"></div>
+			
+		<script type="text/javascript">
+            var chart;
+
+            var chartData1 = [
+				
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "12:00 AM",
+				        "D1Use": 3.621
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "01:00 AM",
+				        "D1Use": 3.552
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "02:00 AM",
+				        "D1Use": 3.144
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 77 ,
+				        								
+				        "HourChart": "03:00 AM",
+				        "D1Use": 3.033
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 76 ,
+				        								
+				        "HourChart": "04:00 AM",
+				        "D1Use": 3.087
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 76 ,
+				        								
+				        "HourChart": "05:00 AM",
+				        "D1Use": 2.991
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 77 ,
+				        								
+				        "HourChart": "06:00 AM",
+				        "D1Use": 3.033
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 80 ,
+				        								
+				        "HourChart": "07:00 AM",
+				        "D1Use": 2.553
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 83 ,
+				        								
+				        "HourChart": "08:00 AM",
+				        "D1Use": 1.329
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 85 ,
+				        								
+				        "HourChart": "09:00 AM",
+				        "D1Use": 0.219
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 87 ,
+				        								
+				        "HourChart": "10:00 AM",
+				        "D1Use": 0.51
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 90 ,
+				        								
+				        "HourChart": "11:00 AM",
+				        "D1Use": 0.453
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 90 ,
+				        								
+				        "HourChart": "12:00 PM",
+				        "D1Use": 0.231
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 89 ,
+				        								
+				        "HourChart": "01:00 PM",
+				        "D1Use": 0.855
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 86 ,
+				        								
+				        "HourChart": "02:00 PM",
+				        "D1Use": 0.069
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 86 ,
+				        								
+				        "HourChart": "03:00 PM",
+				        "D1Use": 0.423
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 84 ,
+				        								
+				        "HourChart": "04:00 PM",
+				        "D1Use": 0.765
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "05:00 PM",
+				        "D1Use": 3.03
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 79 ,
+				        								
+				        "HourChart": "06:00 PM",
+				        "D1Use": 4.002
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 79 ,
+				        								
+				        "HourChart": "07:00 PM",
+				        "D1Use": 3.684
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "08:00 PM",
+				        "D1Use": 3.891
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 80 ,
+				        								
+				        "HourChart": "09:00 PM",
+				        "D1Use": 4.71
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 79 ,
+				        								
+				        "HourChart": "10:00 PM",
+				        "D1Use": 4.065
+				    	}
+						,
+						
+						{
+						
+				        "D1Temp": 78 ,
+				        								
+				        "HourChart": "11:00 PM",
+				        "D1Use": 3.201
+				    	}
+						
+            ];
+
+			function chartData1_run () {
+                // SERIAL CHART
+                chart = new AmCharts.AmSerialChart();
+                chart.dataProvider = chartData1;
+                chart.categoryField = "HourChart";
+                chart.startDuration = 1;
+				chart.autoMargins = true;
+				
+				
+				chart.accessible = true;
+				chart.accessibleTitle = "Hourly Usage Chart";
+				chart.accessibleDescription = "usage amount is 3.621 on 12:00 AM. usage amount is 3.552 on 01:00 AM. usage amount is 3.144 on 02:00 AM. usage amount is 3.033 on 03:00 AM. usage amount is 3.087 on 04:00 AM. usage amount is 2.991 on 05:00 AM. usage amount is 3.033 on 06:00 AM. usage amount is 2.553 on 07:00 AM. usage amount is 1.329 on 08:00 AM. usage amount is 0.219 on 09:00 AM. usage amount is 0.51 on 10:00 AM. usage amount is 0.453 on 11:00 AM. usage amount is 0.231 on 12:00 PM. usage amount is 0.855 on 01:00 PM. usage amount is 0.069 on 02:00 PM. usage amount is 0.423 on 03:00 PM. usage amount is 0.765 on 04:00 PM. usage amount is 3.03 on 05:00 PM. usage amount is 4.002 on 06:00 PM. usage amount is 3.684 on 07:00 PM. usage amount is 3.891 on 08:00 PM. usage amount is 4.71 on 09:00 PM. usage amount is 4.065 on 10:00 PM. usage amount is 3.201 on 11:00 PM. ";
+
+				chart.legend = {
+					"align": "center",
+					"position" : "right"
+				};
+				
+
+				//
+
+                // AXES
+                // category
+                var categoryAxis = chart.categoryAxis;
+                categoryAxis = chart.categoryAxis;
+				categoryAxis.gridAlpha = 0;
+				categoryAxis.axisAlpha = 0;
+				categoryAxis.inside = false;
+				categoryAxis.gridPosition = "start";
+
+				
+				categoryAxis.equalSpacing = true;
+
+                var valueAxis = new AmCharts.ValueAxis();
+                valueAxis.axisAlpha = 0;
+                valueAxis.unit = "";
+                valueAxis.unitPosition = "left";
+
+				
+
+                chart.addValueAxis(valueAxis);
+
+				
+					// value
+                	var valueAxis2 = new AmCharts.ValueAxis();
+				    valueAxis2.position = "right";
+				    valueAxis2.unit = "\xB0";
+				    valueAxis2.gridThickness = 0;
+				    valueAxis2.axisAlpha = 0;
+				    valueAxis2.axisThickness = 0;
+				    chart.addValueAxis(valueAxis2);
+				
+				
+                // value
+                // in case you don't want to change default settings of value axis,
+                // you don't need to create it, as one value axis is created automatically.
+
+                // GRAPH
+                var col1 = new AmCharts.AmGraph();
+                col1.type = "column";
+                col1.title = "kWh";
+                col1.lineColor = "#85CE00";
+                col1.lineAlpha = 1;
+                col1.fillAlphas = 1;
+                col1.valueField = "D1Use";
+                // col1.balloonText = "[[value]] kWh";
+				col1.balloonFunction = function(item, graph) {
+					var value = item.values.value;
+					if("kWh".toLowerCase().includes('charge')){
+						return "$" + value.toFixed(2) + " kWh";
+					}
+					return value + " kWh";
+				};
+                col1.selected = false;
+                chart.addGraph(col1);
+
+				
+					// line
+	                var graph1 = new AmCharts.AmGraph();
+	                graph1.type = "line";
+	                graph1.title = "\xB0 F";
+	                graph1.lineColor = "#D84B3C";
+	                graph1.valueField = "D1Temp";
+	                graph1.lineThickness = 1;
+	                graph1.bullet = "round";
+	                graph1.bulletSize = 3;
+	                graph1.bulletBorderThickness = 1;
+	                graph1.bulletBorderColor = "#D84B3C";
+	                graph1.bulletBorderAlpha = 1;
+	                graph1.bulletColor = "#D84B3C";
+	                graph1.balloonText = "[[value]] \xB0 F";
+	                graph1.balloonTextColor = "#000000";
+	                graph1.color = "#D84B3C";
+					graph1.lineAlpha = 1 ;
+					graph1.valueAxis = valueAxis2;
+					graph1.bulletSize = 3 ;
+					graph1.selected = false;
+	                chart.addGraph(graph1);
+				
+				  // CURSOR
+                var chartCursor = new AmCharts.ChartCursor();
+                chartCursor.cursorAlpha = 0.6;
+                chartCursor.zoomable = true;
+                chartCursor.cursorPosition = "mouse";
+                chart.addChartCursor(chartCursor);
+
+                chart.creditsPosition = "top-right";
+				chart.sequencedAnimation = false;
+                chart.write("jscontent1");
+			}
+			
+			AmCharts.ready(chartData1_run);
+
+		</script>
+			
+
+	</div>
+
+</div>
+
+</div>
+
+<div class="clear"></div> 
+
+<div class="groupPanel" style="width:100%; padding: 0px 0px 0px 0px">
+
+<div class="group">
+
+	<h1 class="group-header">Hourly Usage</h1>
+
+	<div class="group-content"> <table class="table-autosort table-autofilter table-autopage:30 table-stripeclass:tablerow2 table-page-number:t1page table-page-count:t1pages table-rowcount:t1allcount" id="gridHourlyUsage" width="100%" >
+
+	<thead>
+
+<tr height="20">
+
+	<th colspan=1 align="center" class="gridcoltop">&nbsp;</th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/06</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/05</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/04</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/03</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/02</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">09/01</font></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><font size="+1">08/31</font></th>
+
+</tr>
+
+<tr height="20">
+
+	<th colspan=1 align="center" class="gridcoltop">&nbsp;</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Sun</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Sat</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Fri</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Thu</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Wed</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Tue</th>
+
+	<th colspan=3 align="center" class="gridcoltop">Mon</th>
+
+</tr>
+
+<tr height="20">
+
+	<th colspan=1 align="center" class="gridcoltop">&nbsp;</th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=1&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=2&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=3&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=4&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=5&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=6&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+	<th colspan=3 align="center" class="gridcoltop"><a href="/data.cfm?appPage=Postpaid&appPageScreen=History&appPageScreenSub=Usage%20History&appFlow=20260908082212524&appTransition=View+Hourly+Usage&Service=Electric&iUse=7&MeterID=ID001&EndID=7&StartID=1">Chart</a></th>
+
+</tr>
+
+ <tr height="20">
+
+		<th width="80" class="gridcoltop">Hour</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+		<th width="" class="gridcoltop">&deg;F</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Del</th>
+
+		<th width="" class="gridcoltop">kWh<BR>Rcvd</th>
+
+	</tr></thead>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >12:00 AM - 01:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.621">           3.621</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.741">           3.741</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="3.111">           3.111</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="2.949">           2.949</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.105">           3.105</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="2.418">           2.418</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.129">           3.129</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >01:00 AM - 02:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.552">           3.552</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.666">           3.666</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="3.132">           3.132</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.102">           3.102</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.132">           3.132</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.306">           3.306</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.856">           2.856</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >02:00 AM - 03:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.144">           3.144</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.279">           3.279</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="3.093">           3.093</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.078">           3.078</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.306">           3.306</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.078">           3.078</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.661">           2.661</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >03:00 AM - 04:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.033">           3.033</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.138">           3.138</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="75">75</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="2.856">           2.856</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="2.889">           2.889</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="2.91">           2.910</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="2.817">           2.817</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.898">           2.898</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >04:00 AM - 05:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.087">           3.087</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.084">           3.084</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="2.868">           2.868</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.621">           3.621</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="2.835">           2.835</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="2.952">           2.952</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.012">           3.012</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >05:00 AM - 06:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="2.991">           2.991</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.141">           3.141</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="75">75</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="2.901">           2.901</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="4.26">           4.260</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.213">           3.213</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="2.988">           2.988</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.829">           2.829</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >06:00 AM - 07:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.033">           3.033</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.06">           3.060</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="3.069">           3.069</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.432">           3.432</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.474">           3.474</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.429">           3.429</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.805">           2.805</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >07:00 AM - 08:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="2.553">           2.553</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="2.898">           2.898</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="5.496">           5.496</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.567">           3.567</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.696">           3.696</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.471">           3.471</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.667">           2.667</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >08:00 AM - 09:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="1.329">           1.329</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.057">           0.057</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="1.644">           1.644</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.12">           0.120</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="2.037">           2.037</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.045">           0.045</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="1.731">           1.731</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.051">           0.051</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="1.152">           1.152</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.039">           0.039</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="1.077">           1.077</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.009">           0.009</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.843">           0.843</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.102">           0.102</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >09:00 AM - 10:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="85">85</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.219">           0.219</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="2.352">           2.352</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.12">           0.120</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="1.689">           1.689</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="85">85</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="1.866">           1.866</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="0.291">           0.291</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="1.29">           1.290</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="0.594">           0.594</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.48">           0.480</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="0.891">           0.891</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.726">           0.726</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="85">85</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.477">           0.477</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.411">           0.411</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >10:00 AM - 11:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="87">87</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.51">           0.510</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="3.015">           3.015</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="88">88</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="4.833">           4.833</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="87">87</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.003">           0.003</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="4.389">           4.389</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="0.231">           0.231</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="1.194">           1.194</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="0.417">           0.417</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="1.953">           1.953</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="85">85</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="1.128">           1.128</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="2.631">           2.631</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="87">87</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.045">           0.045</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="4.383">           4.383</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >11:00 AM - 12:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="90">90</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.453">           0.453</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="5.004">           5.004</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="90">90</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="6.816">           6.816</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="89">89</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.018">           0.018</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="7.395">           7.395</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="1.602">           1.602</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.387">           0.387</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="88">88</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="0.042">           0.042</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="4.596">           4.596</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="88">88</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="0.21">           0.210</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="5.673">           5.673</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="5.73">           5.730</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >12:00 PM - 01:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="90">90</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.231">           0.231</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="7.2">           7.200</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="90">90</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="7.527">           7.527</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="90">90</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.141">           0.141</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="7.338">           7.338</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="2.568">           2.568</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.27">           0.270</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="0.261">           0.261</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="7.728">           7.728</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="0.801">           0.801</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="4.428">           4.428</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.069">           0.069</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="6.084">           6.084</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >01:00 PM - 02:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="89">89</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.855">           0.855</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="6.819">           6.819</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="92">92</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.015">           0.015</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="7.506">           7.506</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="91">91</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.15">           0.150</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="6.183">           6.183</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="0.042">           0.042</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="2.334">           2.334</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="87">87</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="1.203">           1.203</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="4.074">           4.074</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="1.314">           1.314</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="2.619">           2.619</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="0.942">           0.942</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="5.67">           5.670</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >02:00 PM - 03:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.069">           0.069</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="6.813">           6.813</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="88">88</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.021">           0.021</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="7.389">           7.389</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="92">92</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.024">           0.024</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="7.512">           7.512</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="2.826">           2.826</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="88">88</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="0.126">           0.126</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="3.273">           3.273</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="0.846">           0.846</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="3.579">           3.579</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="2.931">           2.931</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.312">           0.312</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >03:00 PM - 04:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.423">           0.423</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="5.25">           5.250</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.213">           0.213</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="6.234">           6.234</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="0.012">           0.012</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="6.288">           6.288</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="1.599">           1.599</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.882">           0.882</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="1.821">           1.821</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="1.902">           1.902</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="85">85</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.009">           3.009</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.714">           3.714</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >04:00 PM - 05:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="0.765">           0.765</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="3.786">           3.786</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="1.554">           1.554</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.834">           0.834</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="76">76</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="1.221">           1.221</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="1.776">           1.776</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="2.991">           2.991</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="4.827">           4.827</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="86">86</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="1.11">           1.110</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="1.704">           1.704</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.006">           3.006</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >05:00 PM - 06:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.03">           3.030</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.6">           0.600</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="0.831">           0.831</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="1.872">           1.872</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="77">77</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="4.932">           4.932</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="2.883">           2.883</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="6.498">           6.498</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="84">84</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="1.26">           1.260</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="1.794">           1.794</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="4.386">           4.386</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >06:00 PM - 07:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="4.002">           4.002</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="3.048">           3.048</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="5.286">           5.286</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.615">           3.615</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="83">83</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="4.791">           4.791</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.381">           3.381</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="4.257">           4.257</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >07:00 PM - 08:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.684">           3.684</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="4.479">           4.479</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="5.175">           5.175</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="4.605">           4.605</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.792">           3.792</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="4.074">           4.074</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="4.443">           4.443</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >08:00 PM - 09:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.891">           3.891</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="4.719">           4.719</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="4.653">           4.653</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.609">           3.609</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="4.056">           4.056</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="4.539">           4.539</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.861">           3.861</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >09:00 PM - 10:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="4.71">           4.710</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="5.325">           5.325</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="4.224">           4.224</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="5.667">           5.667</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="82">82</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.816">           3.816</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.903">           3.903</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.696">           3.696</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt3">
+
+		<td  class="griddata" >10:00 PM - 11:00 PM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="4.065">           4.065</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="5.409">           5.409</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="4.299">           4.299</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="5.4">           5.400</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="81">81</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.807">           3.807</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.324">           3.324</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.414">           3.414</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tr class="alt">
+
+		<td  class="griddata" >11:00 PM - 12:00 AM</td>
+
+		<td  class="griddata"  data-grid-col="D1Temp" data-raw-value="78">78</td>
+
+		<td  class="griddata"  data-grid-col="D1Use" data-raw-value="3.201">           3.201</td>
+
+		<td  class="griddata"  data-grid-col="RD1Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D2Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D2Use" data-raw-value="6.312">           6.312</td>
+
+		<td  class="griddata"  data-grid-col="RD2Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D3Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D3Use" data-raw-value="3.741">           3.741</td>
+
+		<td  class="griddata"  data-grid-col="RD3Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D4Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D4Use" data-raw-value="3.27">           3.270</td>
+
+		<td  class="griddata"  data-grid-col="RD4Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D5Temp" data-raw-value="80">80</td>
+
+		<td  class="griddata"  data-grid-col="D5Use" data-raw-value="3.075">           3.075</td>
+
+		<td  class="griddata"  data-grid-col="RD5Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D6Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D6Use" data-raw-value="3.429">           3.429</td>
+
+		<td  class="griddata"  data-grid-col="RD6Use" data-raw-value="0.0">           0.000</td>
+
+		<td  class="griddata"  data-grid-col="D7Temp" data-raw-value="79">79</td>
+
+		<td  class="griddata"  data-grid-col="D7Use" data-raw-value="3.057">           3.057</td>
+
+		<td  class="griddata"  data-grid-col="RD7Use" data-raw-value="0.0">           0.000</td>
+
+	</tr>
+
+	<tfoot>
+
+	<tr>
+		<td><strong>Total</strong></td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D1Use" data-grid-format="Number3" data-grid-abs="false">        56.451</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD1Use" data-grid-format="Number3" data-grid-abs="false">        40.896</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D2Use" data-grid-format="Number3" data-grid-abs="false">        59.697</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD2Use" data-grid-format="Number3" data-grid-abs="false">        44.820</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D3Use" data-grid-format="Number3" data-grid-abs="false">        62.442</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD3Use" data-grid-format="Number3" data-grid-abs="false">        42.792</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D4Use" data-grid-format="Number3" data-grid-abs="false">        67.002</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD4Use" data-grid-format="Number3" data-grid-abs="false">         9.234</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D5Use" data-grid-format="Number3" data-grid-abs="false">        65.949</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD5Use" data-grid-format="Number3" data-grid-abs="false">        24.045</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D6Use" data-grid-format="Number3" data-grid-abs="false">        58.755</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD6Use" data-grid-format="Number3" data-grid-abs="false">        23.163</td>
+
+		<td></td>
+
+		<td data-grid-dyncalc="total" data-grid-col="D7Use" data-grid-format="Number3" data-grid-abs="false">        61.998</td>
+
+		<td data-grid-dyncalc="total" data-grid-col="RD7Use" data-grid-format="Number3" data-grid-abs="false">        22.692</td>
+
+	</tr>
+
+	<tr>
+
+		<td><strong>Average</strong></td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D1Temp" data-grid-format="Int" data-grid-abs="false">81</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D1Use" data-grid-format="Number3" data-grid-abs="false">         2.352</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD1Use" data-grid-format="Number3" data-grid-abs="false">         1.704</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D2Temp" data-grid-format="Int" data-grid-abs="false">82</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D2Use" data-grid-format="Number3" data-grid-abs="false">         2.487</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD2Use" data-grid-format="Number3" data-grid-abs="false">         1.868</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D3Temp" data-grid-format="Int" data-grid-abs="false">81</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D3Use" data-grid-format="Number3" data-grid-abs="false">         2.602</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD3Use" data-grid-format="Number3" data-grid-abs="false">         1.783</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D4Temp" data-grid-format="Int" data-grid-abs="false">80</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D4Use" data-grid-format="Number3" data-grid-abs="false">         2.792</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD4Use" data-grid-format="Number3" data-grid-abs="false">         0.385</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D5Temp" data-grid-format="Int" data-grid-abs="false">82</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D5Use" data-grid-format="Number3" data-grid-abs="false">         2.748</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD5Use" data-grid-format="Number3" data-grid-abs="false">         1.002</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D6Temp" data-grid-format="Int" data-grid-abs="false">81</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D6Use" data-grid-format="Number3" data-grid-abs="false">         2.448</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD6Use" data-grid-format="Number3" data-grid-abs="false">         0.965</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D7Temp" data-grid-format="Int" data-grid-abs="false">79</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="D7Use" data-grid-format="Number3" data-grid-abs="false">         2.583</td>
+
+		<td data-grid-dyncalc="avg" data-grid-col="RD7Use" data-grid-format="Number3" data-grid-abs="false">         0.946</td>
+
+	</tr>
+
+	</tfoot>
+
+</table>
+
+<script language="javascript">
+function gridmove(page,grid) {
+	var t = document.getElementById(grid);
+	var res;
+	if (page=="previous") {
+		res=Table.pagePrevious(t);
+	}
+	else if (page=="next") {
+		res=Table.pageNext(t);
+	}
+	else {
+		res=Table.page(t,page);
+	}
+}
+</script>
+<script>
+(function(){
+  var t=document.getElementById("gridHourlyUsage");
+  if(!t)return;
+  function calcDyn(){
+    var dc=t.querySelectorAll('tfoot td[data-grid-dyncalc]');
+    if(!dc.length)return;
+    var filters={};
+    var fsel=t.querySelectorAll('thead select.table-autofilter');
+    for(var s=0;s<fsel.length;s++){
+      var sel=fsel[s],val=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].value:'';
+      if(val!==''){
+        var th=sel.parentNode;
+        while(th&&th.tagName!=='TH'&&th.tagName!=='TD')th=th.parentNode;
+        if(th)filters[th.cellIndex]=val;
+      }
+    }
+    var tbody=t.querySelector('tbody');
+    if(!tbody)return;
+    var rows=tbody.rows;
+    for(var i=0;i<dc.length;i++){
+      var c=dc[i];
+      var ctype=c.getAttribute('data-grid-dyncalc');
+      var cn=c.getAttribute('data-grid-col');
+      var fmt=c.getAttribute('data-grid-format');
+      var doAbs=c.getAttribute('data-grid-abs')==="true";
+      var vals=[],v;
+      for(var r=0;r<rows.length;r++){
+        var row=rows[r],pass=true;
+        for(var col in filters){
+          if(row.cells&&col<row.cells.length){
+            var cv=(row.cells[col].textContent||row.cells[col].innerText||'').replace(/^\s+|\s+$/g,'');
+            if(cv!==filters[col]){pass=false;break;}
+          }
+        }
+        if(!pass)continue;
+        var cell=row.querySelector('td[data-grid-col="'+cn+'"]');
+        if(cell){v=parseFloat(cell.getAttribute('data-raw-value'));if(!isNaN(v))vals.push(v);}
+      }
+      if(!vals.length){c.innerHTML='';continue;}
+      var sum=0;for(var k=0;k<vals.length;k++)sum+=vals[k];
+      var result=(ctype==='total')?sum:sum/vals.length;
+      if(doAbs)result=Math.abs(result);
+      c.innerHTML=gridDynFmt(result,fmt);
+    }
+  }
+  function gridDynFmt(v,f){
+    function n(x,d){var s=x.toFixed(d),p=s.split('.'),i=p[0].replace(/(\d)(?=(\d{3})+$)/g,'$1,'),r=p[1]?i+'.'+p[1]:i;return r;}
+    if(f==='Dollar')return '$'+n(v,2);
+    if(f==='Int')return n(Math.floor(v),0);
+    if(f==='Degree')return Math.round(v)+'&deg;';
+    if(f==='Number')return n(v,2);
+    if(f==='Number3')return n(v,3);
+    if(f==='Number4')return n(v,4);
+    if(f==='%')return n(v*100,2)+'%';
+    return String(v);
+  }
+  calcDyn();
+  t.addEventListener('change',function(e){
+    if(e.target&&(' '+e.target.className+' ').indexOf(' table-autofilter ')>=0)calcDyn();
+  });
+})();
+</script>
+
+	</div>
+
+</div>
+
+</div>
+
+<div class="clear"></div> 
+    </div><!-- body content -->
+    
+      </div><!--// content -->
+      </div><!--// container -->
+      </div><!--// wrapper-->
+      <div id="footer-wrapper">
+        <div class="container">
+          <div id="scene"></div>
+          <div id="footer">
+            <div id="footer-navigation">
+              <ul></ul>
+            </div>
+            <div id="legal">
+              <p>MyUsage.com &copy; 2026. All rights reserved. ws8</p>
+            </div>
+            <div class="clear"></div>
+          </div>
+        </div>
+      </div>
+    
+</BODY>
+</HTML>

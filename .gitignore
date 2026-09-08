@@ -1,0 +1,29 @@
+# Credentials and live-session material — never commit
+.env
+.env.*
+*.cookies
+probes/raw/
+probes/
+# The whole probes/ tree is ignored, including the anonymized bundle: the
+# 2026-09-08 run showed anonymization can miss identifiers (account number and
+# internal MeterID both leaked until the anonymizer was hardened).
+# To promote a reviewed fixture, copy it into tests/fixtures/ deliberately.
+# The probe also writes a self-ignoring .gitignore inside its raw/ output
+# directory, so a custom --out location stays protected too.
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
