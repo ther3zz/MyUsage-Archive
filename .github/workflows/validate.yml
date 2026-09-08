@@ -1,4 +1,4 @@
-name: Validate (hassfest)
+name: Validate (hassfest + HACS)
 
 on:
   push:
@@ -13,3 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # brands is a default-store requirement (a PR to home-assistant/brands);
+          # custom-repository installs do not need it.
+          ignore: brands
