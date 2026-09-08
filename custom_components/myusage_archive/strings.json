@@ -1,0 +1,73 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MyUsage account",
+        "description": "Sign in with the email and password you use at myusage.com (not your OUC/myOUC login). Register a MyUsage login with your email first if you normally reach the dashboard through the OUC portal button.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate MyUsage",
+        "description": "The MyUsage password for {email} is no longer accepted. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "MyUsage rejected the email or password.",
+      "cannot_connect": "Could not reach myusage.com.",
+      "unsupported_account": "Signed in, but this account did not land on the postpaid usage app (multi-utility or prepay accounts are not supported yet).",
+      "unknown": "Unexpected error; check the Home Assistant log."
+    },
+    "abort": {
+      "already_configured": "This MyUsage account is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "MyUsage Archive options",
+        "description": "The portal publishes once a day around 10:30 AM Eastern with a two-day lag. One fetch per day, shortly after that, is all the data supports.",
+        "data": {
+          "fetch_time": "Daily fetch time (Eastern, HH:MM)",
+          "jitter_minutes": "Random delay added to the fetch time (minutes)",
+          "keep_raw_pages": "Successfully parsed raw pages to retain per kind (failed pages are always kept)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Enter a time as HH:MM (24-hour)."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_fetch": { "name": "Last successful fetch" },
+      "newest_interval": { "name": "Newest archived interval" },
+      "permanent_gaps": { "name": "Permanently missing intervals" },
+      "recoverable_gaps": { "name": "Recoverable missing intervals" }
+    }
+  },
+  "issues": {
+    "layout_error": {
+      "title": "MyUsage page layout changed",
+      "description": "The MyUsage page for {email} no longer matches a layout this integration understands ({error}). Nothing was archived from it, and the raw page was kept in the archive for diagnosis. Please report this with the anonymized capture from `myusage-archive probe`."
+    },
+    "export_halted": {
+      "title": "MyUsage statistics export halted",
+      "description": "The statistics for {statistic_id} could not be reconciled with the archive ({reason}). Export is paused to avoid corrupting the Energy dashboard. Delete the statistic under Developer tools → Statistics and reload the integration to rebuild it from the archive."
+    },
+    "unsupported_account": {
+      "title": "MyUsage account not supported",
+      "description": "Signing in as {email} worked, but the account did not land on the postpaid usage app: {error}. Multi-utility and prepay accounts are not supported yet."
+    },
+    "stale_archive": {
+      "title": "MyUsage archive is stale",
+      "description": "No new usage data has been archived for {email} in over {hours} hours. The portal's 7-day window means data older than a week can no longer be recovered. Check the Home Assistant log for fetch errors."
+    }
+  }
+}

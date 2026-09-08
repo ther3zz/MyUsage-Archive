@@ -1,0 +1,14 @@
+{
+  "domain": "myusage_archive",
+  "name": "MyUsage Archive",
+  "codeowners": ["@reptar"],
+  "config_flow": true,
+  "dependencies": ["recorder"],
+  "documentation": "https://github.com/reptar/exceleron-client",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/reptar/exceleron-client/issues",
+  "loggers": ["myusage_archive"],
+  "requirements": ["myusage-archive==0.1.0"],
+  "version": "0.1.0"
+}

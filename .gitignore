@@ -27,3 +27,5 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+dist/
+.venv-ha/

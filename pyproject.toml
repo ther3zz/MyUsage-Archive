@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "myusage-archive"
-version = "0.0.1"
+version = "0.1.0"
 description = "Unofficial archiver for Exceleron MyUsage utility portals (OUC): durable local capture of 15-minute electric interval data. Not affiliated with Exceleron Software or OUC."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,6 +23,9 @@ myusage-archive = "myusage_archive.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+# The Home Assistant custom component lives in custom_components/ in this same
+# repository but is NOT part of the PyPI distribution (see MANIFEST.in). The
+# integration depends on the published library through its manifest pin.
 
 [tool.setuptools.package-data]
 myusage_archive = ["py.typed"]
@@ -30,6 +33,7 @@ myusage_archive = ["py.typed"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]   # makes custom_components importable in tests
 markers = [
     "network: hits the live MyUsage portal; excluded from the default run",
 ]

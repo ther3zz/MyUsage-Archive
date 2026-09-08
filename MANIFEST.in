@@ -1,0 +1,4 @@
+prune custom_components
+prune tests
+prune probes
+prune docs

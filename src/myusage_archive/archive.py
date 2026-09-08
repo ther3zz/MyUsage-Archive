@@ -301,6 +301,37 @@ class _Change:
 # ------------------------------------------------------------------ archive
 
 
+class BackupLock:
+    """A held write lock. Deliberately ``check_same_thread=False``: the lock is
+    taken and released from different executor threads but never used
+    concurrently, which the sqlite3 module permits."""
+
+    def __init__(self, path: Path) -> None:
+        self._conn: sqlite3.Connection | None = sqlite3.connect(
+            str(path), isolation_level=None, check_same_thread=False
+        )
+        try:
+            self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            self._conn.execute("BEGIN IMMEDIATE")
+        except BaseException:
+            self._conn.close()
+            self._conn = None
+            raise
+
+    @property
+    def held(self) -> bool:
+        return self._conn is not None
+
+    def release(self) -> None:
+        conn, self._conn = self._conn, None
+        if conn is None:
+            return
+        try:
+            conn.execute("END")
+        finally:
+            conn.close()
+
+
 class Archive:
     """SQLite-backed archive. Cheap to construct; each method opens its own connection."""
 
@@ -341,6 +372,8 @@ class Archive:
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys=ON")
             conn.execute("PRAGMA synchronous=NORMAL")
+            # Ride out a backup lock (see lock_for_backup) instead of failing.
+            conn.execute("PRAGMA busy_timeout=30000")
             self._ensure_schema(conn)
             if write:
                 conn.execute("BEGIN IMMEDIATE")
@@ -1100,6 +1133,16 @@ class Archive:
         return issues
 
     # -- maintenance
+
+    def lock_for_backup(self) -> BackupLock:
+        """Checkpoint the WAL and hold a write lock until ``release()``.
+
+        Home Assistant's backup tars the database and its write-ahead log one
+        after the other; holding a write lock across the backup guarantees a
+        consistent pair (this mirrors the recorder's own backup platform).
+        """
+        self._guard()
+        return BackupLock(self.path)
 
     def integrity_check(self) -> str:
         with self._connect() as conn:

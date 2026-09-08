@@ -1,0 +1,2 @@
+# Home Assistant integration test harness (needs Python 3.14+; see README)
+pytest-homeassistant-custom-component

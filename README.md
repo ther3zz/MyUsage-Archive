@@ -21,10 +21,73 @@ grid return statistics.
 | Milestone | State |
 |-----------|-------|
 | M0 — probe harness, portal facts verified live | done |
-| M1 — strict parser, SQLite archive, daily fetch loop, CLI | **done** |
-| M2 — Home Assistant integration (Energy dashboard statistics) | next |
-| M3 — daily-history backfill (~15 months available), repair tooling, HACS | planned |
+| M1 — strict parser, SQLite archive, daily fetch loop, CLI | done |
+| M2 — Home Assistant integration (Energy dashboard statistics) | **done, awaiting first production install** |
+| M3 — daily-history backfill (~15 months available), repair tooling, HACS default store | planned |
 | M4 — DST validation (Nov 2026 capture), non-solar/multi-meter fixtures | planned |
+
+## Home Assistant integration (M2)
+
+The integration lives in `custom_components/myusage_archive/` in this same
+repository and depends on the library through its manifest pin
+(`myusage-archive==0.1.0` on PyPI). It runs one fetch cycle per day at an
+Eastern wall-clock time you choose, archives to
+`/config/myusage_archive/<entry_id>.db` (included in Home Assistant backups,
+with a backup hook that keeps the file consistent), and exports two external
+long-term statistics per meter:
+
+| Statistic | Energy dashboard slot |
+|-----------|-----------------------|
+| `myusage_archive:<meter>_energy_delivered` | Grid consumption |
+| `myusage_archive:<meter>_energy_received` | Return to grid |
+
+The sums are an exact decimal fold over the archive, so re-runs are no-ops,
+portal corrections re-import contiguously from the changed hour, and a
+deleted or restored recorder is rebuilt from the archive instead of producing
+negative bars. No solar-production statistic is exported: the portal exposes
+export, not gross generation.
+
+### Install on Home Assistant OS
+
+1. **Publish the library** (once per library version; HAOS installs manifest
+   requirements from PyPI only): `uv build && uv publish` with your PyPI token.
+2. Copy `custom_components/myusage_archive/` into `/config/custom_components/`
+   (Samba or SSH add-on) and restart Home Assistant.
+3. Settings → Devices & services → Add integration → **MyUsage Archive**.
+   Use your `myusage.com` email and password (not the OUC login).
+4. After the first cycle, add the two statistics above in Settings → Dashboards
+   → Energy. Statistics appear once the recorder has processed the import.
+5. Options: fetch time (Eastern), jitter, and how many successfully parsed raw
+   pages to retain (failed pages are always kept for diagnosis).
+
+Take a full backup before the first install. The blast radius of an exporter
+bug is the two statistic ids above, which can be deleted under Settings →
+Developer tools → Statistics and are rebuilt on the next run.
+
+### Diagnostics
+
+Four diagnostic sensors: last successful fetch, newest archived interval,
+permanently missing intervals, recoverable missing intervals. Repair issues
+are raised for layout changes, unsupported accounts, a halted export, and a
+stale archive. The diagnostics download includes the archive summary, recent
+fetches, gaps, consistency checks and exporter state, with credentials
+redacted.
+
+### Migrating from `dstamen/myusage-ha`
+
+That integration misreads solar accounts (fixed column indices) and rewrites
+its statistics with a different baseline every poll. To switch:
+
+1. Remove its config entry and uninstall it (running both doubles portal load).
+2. Delete its orphaned statistics under Settings → Developer tools →
+   Statistics: `myusage:electric_kwh`, `myusage:water_gal`,
+   `myusage:reclaimed_gal`, plus `sensor.myusage_electric_grid` /
+   `sensor.myusage_water_grid` if you ran a 1.2.6 beta.
+3. Point the Energy dashboard at the `myusage_archive:` statistics.
+
+Deleting *this* integration's statistics does not remove them permanently:
+they are rebuilt from the archive on the next cycle. Remove the config entry
+instead.
 
 ## Daily archiving (M1)
 
@@ -126,9 +189,15 @@ Promote reviewed fixtures into `tests/fixtures/` deliberately.
 
 ```bash
 uv venv .venv && uv pip install -p .venv/bin/python -e ".[test]"
-.venv/bin/python -m pytest -q        # 134 tests, no network; live fixtures in tests/fixtures/live
-uvx ruff check src tests
+.venv/bin/python -m pytest -q        # library: 157 tests, no network; live fixtures in tests/fixtures/live
+uvx ruff check src tests custom_components tests_ha
 .venv/bin/python -m mypy src         # strict
+
+# Home Assistant integration tests need HA's Python (3.14+):
+uv venv .venv-ha -p 3.14 && uv pip install -p .venv-ha/bin/python -e . -r requirements-ha-test.txt
+.venv-ha/bin/python -m pytest tests_ha -q          # against a real in-memory recorder
 ```
 
-Live-portal tests are marked `network` and excluded by default.
+Live-portal tests are marked `network` and excluded by default. CI runs the
+library suite on 3.12 and 3.14, the integration suite on 3.14, hassfest and
+the HACS validator, and checks that the built wheel excludes the component.
