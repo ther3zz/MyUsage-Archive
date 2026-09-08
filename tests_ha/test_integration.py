@@ -380,7 +380,8 @@ async def test_export_halt_issue_clears_when_the_archive_catches_up(
         assert coordinator.data.export.halted
 
         def _restore_intervals() -> None:
-            grid = parse_interval_grid((FIXTURES / "03-grid15.html").read_text(), reference_date=REF)
+            html = (FIXTURES / "03-grid15.html").read_text()
+            grid = parse_interval_grid(html, reference_date=REF)
             fid = seeded.record_fetch("grid15", ok=True, http_status=200)
             seeded.store_intervals(grid.readings, meter=METER, fetch_id=fid, has_received=True)
 
