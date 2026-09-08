@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   library:
     name: library (py${{ matrix.python }})
@@ -12,7 +15,7 @@ jobs:
       matrix:
         python: ["3.12", "3.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v5
       - run: uv venv -p ${{ matrix.python }} .venv
       - run: uv pip install -p .venv/bin/python -e ".[test]"
@@ -25,7 +28,7 @@ jobs:
     name: home assistant integration (py3.14)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v5
       - run: uv venv -p 3.14 .venv-ha
       - run: uv pip install -p .venv-ha/bin/python -e . -r requirements-ha-test.txt mypy
@@ -36,7 +39,7 @@ jobs:
     name: wheel excludes the component
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v5
       - run: uv build
       - run: |
