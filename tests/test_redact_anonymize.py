@@ -58,3 +58,41 @@ def test_anonymizer_scrubs_email_and_extras() -> None:
     assert "jane.doe" not in out
     assert "123 Palm Ave" not in out
     assert "user@example.com" in out
+
+
+def test_anonymizer_scrubs_account_holder_name_by_structure() -> None:
+    """The portal header carries the customer's name above the account line.
+    It must be replaced without the operator having to know to pass it."""
+    html = (
+        '<div id="account-navigation"><div class="details">\n'
+        "<b>Public,John Q</b><br /><br />\n Account: 12345678\n</div></div>"
+        '<table id="gridUsageHistory"><tr><td>7CD06051</td></tr></table>'
+    )
+    anon = Anonymizer()
+    found = anon.learn_meters_from_html(html)
+    assert "Public,John Q" in found
+    out = anon.apply(html)
+    assert "Public" not in out and "John" not in out
+    assert "<b>Customer,Sample</b>" in out
+    assert "12345678" not in out
+
+
+def test_live_fixtures_carry_no_account_holder_name() -> None:
+    from pathlib import Path
+
+    from myusage_archive.probe import scan_for_leaks
+
+    fixtures = Path(__file__).parent / "fixtures" / "live"
+    files = {p.name: p.read_text(encoding="utf-8") for p in fixtures.glob("*.html")}
+    assert files
+    for text in files.values():
+        assert "<b>Customer,Sample</b>" in text
+    assert [f for f in scan_for_leaks(files) if f["kind"] == "holder_name"] == []
+
+
+def test_leak_scanner_flags_a_surviving_holder_name() -> None:
+    from myusage_archive.probe import scan_for_leaks
+
+    page = '<div class="details"><b>Doe,Jane</b><br /><br /> Account: ACCT001 </div>'
+    kinds = {f["kind"] for f in scan_for_leaks({"p.html": page})}
+    assert "holder_name" in kinds

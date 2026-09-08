@@ -10,6 +10,8 @@ Covered automatically:
 - display meter numbers from the first cell of usage-grid rows (e.g. 7CD06051),
 - internal numeric ids from MeterID/AccountID form fields and URLs,
 - the account number shown under an "Account #" / "Account Number" label,
+- the account holder's name in the page header (the bold line above
+  "Account:" inside the ``details`` block),
 - SSO tokens, CFID/CFTOKEN, xsrf_token/asid values (via redact patterns),
 - any extra strings the operator passes (names, street address, ...).
 
@@ -36,6 +38,12 @@ _ID_FIELD_NAMES = {"meterid", "accountid", "premiseid", "serviceid", "customerid
 
 # Labels that precede an account number in the page chrome.
 _ACCOUNT_LABEL_RE = re.compile(r"account\s*(?:#|number|no\.?)?", re.IGNORECASE)
+
+# The account holder's name as the portal renders it in the header:
+#   <div class="details"> <b>Last,First</b><br /><br /> Account: NNN </div>
+# Learned by structure, not by value, so it is scrubbed even when the operator
+# never passed it via --scrub (the 2026-09-08 bundle leaked it this way).
+_HOLDER_NAME_PLACEHOLDER = "Customer,Sample"
 
 
 @dataclass
@@ -101,6 +109,21 @@ class Anonymizer:
             if digits:
                 self._placeholder(digits, "ACCT")
                 found.append(digits)
+
+        # 5. Account holder's name: the bold text inside the header details
+        #    block that also carries the "Account:" line.
+        for details in soup.find_all("div", class_="details"):
+            if not isinstance(details, Tag):
+                continue
+            if not _ACCOUNT_LABEL_RE.search(details.get_text(" ", strip=True)):
+                continue
+            for bold in details.find_all("b"):
+                if not isinstance(bold, Tag):
+                    continue
+                name = bold.get_text(strip=True)
+                if len(name) >= 3 and not name.isdigit() and name != _HOLDER_NAME_PLACEHOLDER:
+                    self._mapping.setdefault(name, _HOLDER_NAME_PLACEHOLDER)
+                    found.append(name)
 
         return found
 

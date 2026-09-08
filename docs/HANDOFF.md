@@ -117,8 +117,10 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
 - Multiple reads can close on one day (2025-09-10: 44 h Historical + 3.8 h Valid) → summed into one bucket.
 
 ## Current state
-- Commits: `408d66c` (M0+M1), `767f754` (M2), `fad1d61` (vendoring), then M3 on branch `m3-backfill`
-  (fast-forwardable onto `main`; `main`/`m1`/`m2` branches are already on Forgejo, the later ones are not).
+- Everything is on `main` at Forgejo (`408d66c` M0+M1, `767f754` M2, `fad1d61` vendoring, `3dd13db` M3, then
+  the install script). Milestone branches were deleted after fast-forward merges. **Installed on the
+  production HA instance 2026-09-08** via `scripts/install-exceleron-client.sh` (run from the HA SSH add-on,
+  BusyBox userland — no rsync, no GNU chown).
 - M3 built: `series.py` plans over *points* (hour or midnight day bucket; `build_points` eligibility = zero
   intervals AND whole day before `oldest_recoverable_utc`), `merge_stray_rows` rewrites recorder starts a
   full/reimport no longer produces (plan §5 flip rule), `Archive.daily_buckets/daily_change_days_since/
@@ -126,13 +128,13 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
   records the *requested* window so it is one-shot per span), CLI `backfill --days`, HA option
   `backfill_days` (default 730, 0 = off), diagnostics `hour_points/day_points`.
 - All green: 178 library tests, 18 HA tests, ruff, mypy --strict (both), vendor check.
-- Manifest now points at `https://github.com/ther3zz/MyUsage-Archive`.
+- Manifest points at the public GitHub mirror `https://github.com/ther3zz/MyUsage-Archive` (Forgejo is the private origin and push-mirrors
+  to it); the private hostname must never appear in the tree or history.
 
 ## Next steps, in order
-1. User: push to Forgejo; fix manifest placeholders; take a full HA backup; copy
-   `custom_components/myusage_archive` → `/config/custom_components`; restart; add the integration
-   (myusage.com login); after the first cycle wire `myusage_archive:<meter>_energy_delivered` (grid consumption)
-   and `…_energy_received` (return to grid) in the Energy dashboard.
+1. User: confirm the first cycle ran (log lines for backfill + export), wire
+   `myusage_archive:<meter>_energy_delivered` (grid consumption) and `…_energy_received` (return to grid) in
+   the Energy dashboard; updates = re-run the install one-liner in the README + restart.
 2. User: run `myusage-archive probe --recheck` once (session-lifetime probe); switch the Nov 3–9 2026 cron entry to
    `probe --grids-only`; run `myusage-archive fetch` daily via cron if not using HA for a while.
 3. Agent: M4 — Nov 2026 DST fold validation, non-solar/multi-meter fixtures, optional water. Possible M3

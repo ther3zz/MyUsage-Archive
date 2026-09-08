@@ -7,9 +7,10 @@ separate *kWh Delivered* / *kWh Received* registers.
 
 The portal exposes 15-minute interval data only through a **rolling 7-day
 window**: anything not fetched within that window is permanently lost. This
-project logs in as *you*, archives your own data durably to SQLite, and (next
-milestone) feeds the Home Assistant Energy dashboard with grid consumption and
-grid return statistics.
+project logs in as *you*, archives your own data durably to SQLite, and feeds
+the Home Assistant Energy dashboard with grid consumption and grid return
+statistics — about fifteen months of daily history, then 15-minute data
+rolled up to hours.
 
 > **Unaffiliated.** This project is not associated with, endorsed by, or
 > supported by Exceleron Software, LLC or Orlando Utilities Commission.
@@ -22,11 +23,11 @@ grid return statistics.
 |-----------|-------|
 | M0 — probe harness, portal facts verified live | done |
 | M1 — strict parser, SQLite archive, daily fetch loop, CLI | done |
-| M2 — Home Assistant integration (Energy dashboard statistics) | **done, awaiting first production install** |
-| M3 — daily-history backfill (~15 months) as midnight buckets, flip-safe re-import | **done** |
+| M2 — Home Assistant integration (Energy dashboard statistics) | done, in production since 2026-09-08 |
+| M3 — daily-history backfill (~15 months) as midnight buckets, flip-safe re-import | done |
 | M4 — DST validation (Nov 2026 capture), non-solar/multi-meter fixtures | planned |
 
-## Home Assistant integration (M2)
+## Home Assistant integration
 
 The integration lives in `custom_components/myusage_archive/` in this same
 repository and carries a **vendored copy of the library**
@@ -49,7 +50,7 @@ deleted or restored recorder is rebuilt from the archive instead of producing
 negative bars. No solar-production statistic is exported: the portal exposes
 export, not gross generation.
 
-### Backfill (M3)
+### Backfill
 
 The 15-minute grid only ever covers the last seven days, but the daily
 Usage History table goes back about fifteen months. On its first fetch the
@@ -76,27 +77,38 @@ of usage land on.
 
 ### Install on Home Assistant OS
 
-1. Copy the folder `custom_components/myusage_archive/` into
-   `/config/custom_components/` on the Home Assistant box. With the Samba
-   add-on that is a drag-and-drop into the `config` share; with the SSH add-on:
+1. Install the component folder into `custom_components/` of the Home
+   Assistant config directory. `scripts/install-exceleron-client.sh` is
+   self-contained: it fetches this repository (git, or a tarball via
+   curl), copies only `custom_components/myusage_archive/` with
+   `rsync --delete`, matches ownership, and refuses anything that does not
+   look like a config directory. On the Home Assistant box:
 
    ```bash
-   scp -r custom_components/myusage_archive root@homeassistant.local:/config/custom_components/
+   curl -fsSL https://raw.githubusercontent.com/ther3zz/MyUsage-Archive/main/scripts/install-exceleron-client.sh \
+     | bash -s -- /root/homeassistant
    ```
 
-   Home Assistant installs the one third-party dependency (`beautifulsoup4`)
-   from PyPI itself on first load.
+   Run from inside a checkout it installs that checkout instead. `DRY_RUN=1`
+   previews, `REF=<branch>` picks a branch, `REPO_URL=` points it at a
+   mirror (Forgejo/Gitea tarball layout is understood too). Keep the repository itself
+   *outside* the config directory: HA scans `custom_components/` for
+   integrations and only wants that one folder. Home Assistant installs the
+   one third-party dependency (`beautifulsoup4`) from PyPI itself on first
+   load.
 2. Restart Home Assistant.
 3. Settings → Devices & services → Add integration → **MyUsage Archive**.
    Use your `myusage.com` email and password (not the OUC login).
 4. After the first cycle, add the two statistics above in Settings → Dashboards
    → Energy. Statistics appear once the recorder has processed the import.
-5. Options: fetch time (Eastern), jitter, and how many successfully parsed raw
-   pages to retain (failed pages are always kept for diagnosis).
+5. Options: fetch time (Eastern), jitter, the daily-history backfill span
+   (default 730 days, 0 disables), and how many successfully parsed raw pages
+   to retain (failed pages are always kept for diagnosis).
 
-Updating is the same copy plus a restart. Because the repository is hosted on
-a private Forgejo server, HACS is not an option (it reads public GitHub only);
-the copy-a-folder install is deliberately the whole story.
+Updating is the same script plus a restart. Because the repository is hosted
+on a private Forgejo server, HACS is not an option (it only reads public
+GitHub repositories); the copy-a-folder install is deliberately the whole
+story.
 
 Take a full backup before the first install. The blast radius of an exporter
 bug is the two statistic ids above, which can be deleted under Settings →
@@ -128,7 +140,7 @@ Deleting *this* integration's statistics does not remove them permanently:
 they are rebuilt from the archive on the next cycle. Remove the config entry
 instead.
 
-## Daily archiving (M1)
+## Daily archiving (library + CLI)
 
 ```bash
 uv venv .venv && uv pip install -p .venv/bin/python -e .
@@ -190,13 +202,13 @@ which intervals are still fetchable and which are gone.
 - The interval grids abbreviate headers (`kWh Del`, `kWh Rcvd`); the daily
   table spells them out.
 
-## Probe harness (M0)
+## Probe harness
 
 `myusage-archive probe` captures the portal pages, answers the open
 portal-behaviour questions, and writes an anonymized fixture bundle plus a
 leak-scanned `probe-report.json`. `probe --grids-only` is the lean variant for
-scheduled repeat captures (one login, two grids). See `docs/` and the
-implementation plan for the probe questions and their answers.
+scheduled repeat captures (one login, two grids). `docs/HANDOFF.md` carries
+the verified portal facts and the lessons learned.
 
 Everything under `probes/` is git-ignored: the first live bundle leaked an
 account number and an internal meter id before the anonymizer was hardened.
@@ -234,7 +246,7 @@ Promote reviewed fixtures into `tests/fixtures/` deliberately.
 
 ```bash
 uv venv .venv && uv pip install -p .venv/bin/python -e ".[test]"
-.venv/bin/python -m pytest -q        # library: 157 tests, no network; live fixtures in tests/fixtures/live
+.venv/bin/python -m pytest -q        # library: 178 tests, no network; live fixtures in tests/fixtures/live
 uvx ruff check src tests custom_components tests_ha
 .venv/bin/python -m mypy src         # strict
 
@@ -244,7 +256,7 @@ uv venv .venv-ha -p 3.14 && uv pip install -p .venv-ha/bin/python -e . -r requir
 ```
 
 After editing anything under `src/myusage_archive/`, run
-`python scripts/vendor.py` to refresh the component's vendored copy
+`.venv/bin/python scripts/vendor.py` to refresh the component's vendored copy
 (`--check` is what CI runs). Live-portal tests are marked `network` and
 excluded by default. The workflows in `.github/workflows/` use GitHub Actions
 syntax; on Forgejo they need a Forgejo Actions runner with Docker for the

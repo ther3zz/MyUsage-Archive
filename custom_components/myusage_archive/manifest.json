@@ -2,7 +2,7 @@
   "domain": "myusage_archive",
   "name": "MyUsage Archive",
   "codeowners": [
-    "@reptar"
+    "@ther3zz"
   ],
   "config_flow": true,
   "dependencies": [

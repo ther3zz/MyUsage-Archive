@@ -227,6 +227,14 @@ _LEAK_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("session_cookie", re.compile(r"CF(?:ID|TOKEN)=[^&\";\s]+", re.IGNORECASE)),
     ("account_label", re.compile(r"account\s*(?:#|number)[^0-9]{0,40}(\d{4,})", re.IGNORECASE)),
     ("id_param", re.compile(r"(?:meter|account|premise|customer)id=(\d{4,})", re.IGNORECASE)),
+    # Header "Last,First" line: anything but the anonymizer's placeholder is a leak.
+    (
+        "holder_name",
+        re.compile(
+            r"<b>((?!Customer,Sample)[^<>]{3,60},[^<>]{2,60})</b>\s*(?:<br\s*/?>\s*)*Account:",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 # Values that are legitimately numeric and not identifiers.
