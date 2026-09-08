@@ -68,7 +68,7 @@
     },
     "export_halted": {
       "title": "MyUsage statistics export halted",
-      "description": "The statistics for {statistic_id} could not be reconciled with the archive ({reason}). Export is paused to avoid corrupting the Energy dashboard. Delete the statistic under Developer tools → Statistics and reload the integration to rebuild it from the archive."
+      "description": "The statistics for {statistic_id} could not be reconciled with the archive ({reason}). Export of that series is paused so the Energy dashboard is never rewound. This clears itself once the archive catches up (the next successful fetch, at the latest tomorrow's slot). If it persists, delete the statistic under Developer tools → Statistics and reload the integration to rebuild it from the archive."
     },
     "unsupported_account": {
       "title": "MyUsage account not supported",

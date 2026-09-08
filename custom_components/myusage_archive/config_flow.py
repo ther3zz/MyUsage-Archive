@@ -51,7 +51,7 @@ _TIME_RE = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
 
 async def _validate_login(hass: HomeAssistant, email: str, password: str) -> str | None:
     """Try the credentials; return an error key or None on success."""
-    session = async_create_clientsession(hass, cookie_jar=aiohttp.CookieJar())
+    session = async_create_clientsession(hass, auto_cleanup=False, cookie_jar=aiohttp.CookieJar())
     try:
         await MyUsageClient(email, password, session).login()
     except (AuthenticationError, MfaRequiredError):

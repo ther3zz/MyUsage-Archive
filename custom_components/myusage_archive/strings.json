@@ -32,10 +32,11 @@
     "step": {
       "init": {
         "title": "MyUsage Archive options",
-        "description": "The portal publishes once a day around 10:30 AM Eastern with a two-day lag. One fetch per day, shortly after that, is all the data supports.",
+        "description": "The portal publishes once a day around 10:30 AM Eastern with a two-day lag. One fetch per day, shortly after that, is all the data supports. The backfill asks the portal once for its daily history (about 15 months) and fills the Energy dashboard with one bucket per day for days older than the 15-minute window; set it to 0 to disable.",
         "data": {
           "fetch_time": "Daily fetch time (Eastern, HH:MM)",
           "jitter_minutes": "Random delay added to the fetch time (minutes)",
+          "backfill_days": "Daily-history backfill span (days, 0 = off)",
           "keep_raw_pages": "Successfully parsed raw pages to retain per kind (failed pages are always kept)"
         }
       }
@@ -46,10 +47,18 @@
   },
   "entity": {
     "sensor": {
-      "last_fetch": { "name": "Last successful fetch" },
-      "newest_interval": { "name": "Newest archived interval" },
-      "permanent_gaps": { "name": "Permanently missing intervals" },
-      "recoverable_gaps": { "name": "Recoverable missing intervals" }
+      "last_fetch": {
+        "name": "Last successful fetch"
+      },
+      "newest_interval": {
+        "name": "Newest archived interval"
+      },
+      "permanent_gaps": {
+        "name": "Permanently missing intervals"
+      },
+      "recoverable_gaps": {
+        "name": "Recoverable missing intervals"
+      }
     }
   },
   "issues": {
@@ -59,7 +68,7 @@
     },
     "export_halted": {
       "title": "MyUsage statistics export halted",
-      "description": "The statistics for {statistic_id} could not be reconciled with the archive ({reason}). Export is paused to avoid corrupting the Energy dashboard. Delete the statistic under Developer tools → Statistics and reload the integration to rebuild it from the archive."
+      "description": "The statistics for {statistic_id} could not be reconciled with the archive ({reason}). Export of that series is paused so the Energy dashboard is never rewound. This clears itself once the archive catches up (the next successful fetch, at the latest tomorrow's slot). If it persists, delete the statistic under Developer tools → Statistics and reload the integration to rebuild it from the archive."
     },
     "unsupported_account": {
       "title": "MyUsage account not supported",

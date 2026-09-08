@@ -288,10 +288,33 @@ async def test_deleted_series_is_rebuilt(
 # ------------------------------------------------------------- fetch path
 
 
-async def test_auth_failure_starts_reauth(
+async def test_auth_failure_on_a_fresh_archive_retries_instead_of_reauth(
     recorder_mock, hass: HomeAssistant, entry: MockConfigEntry
 ) -> None:
-    """Empty archive => first refresh fetches; bad credentials => reauth flow."""
+    """The config flow validated these credentials seconds ago; a rejection on
+    the very first cycle is the portal's login throttle, not a bad password.
+    Setup retries (ConfigEntryNotReady) rather than bouncing into reauth."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline") as pipeline:
+        pipeline.return_value.run_cycle = AsyncMock(side_effect=AuthenticationError("nope"))
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert not any(f["context"].get("source") == "reauth" for f in flows)
+
+
+async def test_auth_failure_after_a_working_archive_starts_reauth(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+) -> None:
+    """Once the account has fetched successfully before, a rejection is real."""
+    import sqlite3
+
+    def _age_fetches() -> None:  # older than the 6 h startup guard, so the refresh fetches
+        with sqlite3.connect(seeded.path) as conn:
+            conn.execute("UPDATE fetches SET fetched_at_utc = fetched_at_utc - 8 * 3600")
+
+    await hass.async_add_executor_job(_age_fetches)
     with patch("custom_components.myusage_archive.coordinator.Pipeline") as pipeline:
         pipeline.return_value.run_cycle = AsyncMock(side_effect=AuthenticationError("nope"))
         entry.add_to_hass(hass)
@@ -300,6 +323,75 @@ async def test_auth_failure_starts_reauth(
     assert entry.state is ConfigEntryState.SETUP_ERROR
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert any(f["context"].get("source") == "reauth" for f in flows)
+
+
+async def test_startup_guard_ignores_a_daily_only_archive(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """A cycle interrupted after the daily table but before the grid leaves a
+    recent *daily* fetch and no intervals. The startup guard must key on the
+    interval grid, or the archive sits interval-less for six hours while the
+    exporter (rightly) refuses to rewind the recorder."""
+    from custom_components.myusage_archive.coordinator import archive_path
+    from custom_components.myusage_archive.vendor.myusage_archive.archive import Archive
+
+    def _daily_only() -> None:
+        archive = Archive(archive_path(hass, entry.entry_id), allow_event_loop=True)
+        archive.record_fetch("daily", ok=True, http_status=200)
+        archive.record_fetch("daily_range", ok=True, http_status=200)
+
+    await hass.async_add_executor_job(_daily_only)
+    with patch("custom_components.myusage_archive.coordinator.Pipeline") as pipeline:
+        pipeline.return_value.run_cycle = AsyncMock(side_effect=LayoutError("stop"))
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    pipeline.return_value.run_cycle.assert_awaited_once()
+
+
+async def test_export_halt_issue_clears_when_the_archive_catches_up(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+) -> None:
+    """Recorder ahead of the archive (anchor case 4) raises a repair issue;
+    once the intervals are back the series exports and the issue is gone."""
+    import sqlite3
+
+    from custom_components.myusage_archive.const import ISSUE_EXPORT_HALTED
+    from custom_components.myusage_archive.vendor.myusage_archive.parser import (
+        parse_interval_grid,
+    )
+
+    from .conftest import FIXTURES, REF
+
+    issue_id = f"{ISSUE_EXPORT_HALTED}_{DELIVERED.replace(':', '_')}_{entry.entry_id}"
+    registry = ir.async_get(hass)
+    with patch("custom_components.myusage_archive.coordinator.Pipeline"):
+        await _setup(hass, entry)  # exports through Sep 6 23:00
+        coordinator = entry.runtime_data
+
+        def _drop_intervals() -> None:
+            with sqlite3.connect(seeded.path) as conn:
+                conn.execute("DELETE FROM interval_readings")
+
+        await hass.async_add_executor_job(_drop_intervals)
+        with patch.object(coordinator, "_fetch_cycle", AsyncMock(return_value=0)):
+            await coordinator.async_refresh()
+        assert registry.async_get_issue(DOMAIN, issue_id) is not None
+        assert coordinator.data.export.halted
+
+        def _restore_intervals() -> None:
+            grid = parse_interval_grid((FIXTURES / "03-grid15.html").read_text(), reference_date=REF)
+            fid = seeded.record_fetch("grid15", ok=True, http_status=200)
+            seeded.store_intervals(grid.readings, meter=METER, fetch_id=fid, has_received=True)
+
+        await hass.async_add_executor_job(_restore_intervals)
+        with patch.object(coordinator, "_fetch_cycle", AsyncMock(return_value=0)):
+            await coordinator.async_refresh()
+            await async_wait_recording_done(hass)
+    assert registry.async_get_issue(DOMAIN, issue_id) is None
+    assert not coordinator.data.export.halted
+    rows = await _all_rows(hass, DELIVERED)
+    assert [r["sum"] for r in rows] == sorted(r["sum"] for r in rows)
 
 
 async def test_layout_error_creates_repair_issue(

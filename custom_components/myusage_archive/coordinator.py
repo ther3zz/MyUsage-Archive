@@ -16,6 +16,7 @@ the retry ladder is short and lives in memory.
 from __future__ import annotations
 
 import datetime as dt
+import functools
 import logging
 import random
 from collections.abc import Callable
@@ -64,7 +65,7 @@ from .vendor.myusage_archive.exceptions import (
     MyUsageError,
     UnsupportedAccountError,
 )
-from .vendor.myusage_archive.service import Pipeline
+from .vendor.myusage_archive.service import KIND_INTERVALS, Pipeline
 from .vendor.myusage_archive.timeutil import EASTERN, eastern_today
 
 _LOGGER = logging.getLogger(__name__)
@@ -195,7 +196,13 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
 
     async def _async_update_data(self) -> MyUsageData:
         email: str = self.config_entry.data[CONF_EMAIL]
-        last_ok = await self._run_blocking(self.archive.last_successful_fetch_utc)
+        # Freshness is about the 15-minute grid specifically: a cycle that was
+        # interrupted after the daily table (or the backfill) but before the
+        # grid must not count as "recent", or the archive would sit without
+        # intervals for six hours while the exporter refuses to rewind.
+        last_ok = await self._run_blocking(
+            functools.partial(self.archive.last_successful_fetch_utc, KIND_INTERVALS)
+        )
         now_utc = int(dt_util.utcnow().timestamp())
         first_run = self.data is None
         fresh = last_ok is not None and now_utc - last_ok < STARTUP_FETCH_MIN_AGE_HOURS * 3600
@@ -232,18 +239,39 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
                     ISSUE_EXPORT_HALTED,
                     {"statistic_id": halted.statistic_id, "reason": halted.reason},
                 )
+            for ok in export.series:
+                # A halt is a snapshot, not a verdict: once the archive catches
+                # up (next successful grid fetch) the series exports again.
+                self._clear_issue(f"{ISSUE_EXPORT_HALTED}_{ok.statistic_id.replace(':', '_')}")
 
         return await self._build_data(email, new_rows, export, do_network)
 
     async def _fetch_cycle(self, email: str) -> int:
-        """Run one portal cycle; map library errors onto HA semantics."""
-        session = async_create_clientsession(self.hass, cookie_jar=aiohttp.CookieJar())
+        """Run one portal cycle; map library errors onto HA semantics.
+
+        An authentication failure on a brand-new archive is treated as
+        transient: the config flow validated these exact credentials seconds
+        ago, and the portal is known to reject a second login that follows
+        another too closely (probe, 2026-09-08). Bouncing the user into
+        re-authentication for that would be wrong; setup retries instead.
+        """
+        session = async_create_clientsession(
+            self.hass, auto_cleanup=False, cookie_jar=aiohttp.CookieJar()
+        )
         client = MyUsageClient(email, self.config_entry.data[CONF_PASSWORD], session)
         pipeline = Pipeline(client, self.archive, run_blocking=self._run_blocking)
         backfill_days = int(self._option(CONF_BACKFILL_DAYS, DEFAULT_BACKFILL_DAYS))
+        never_fetched = await self._run_blocking(self.archive.last_successful_fetch_utc) is None
         try:
             result = await pipeline.run_cycle(meter=self._meter, backfill_days=backfill_days)
-        except (AuthenticationError, MfaRequiredError) as err:
+        except AuthenticationError as err:
+            if never_fetched:
+                raise UpdateFailed(
+                    f"login rejected right after the credentials were validated; assuming the "
+                    f"portal's login throttle and retrying: {err}"
+                ) from err
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except MfaRequiredError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except UnsupportedAccountError as err:
             self._issue(ISSUE_UNSUPPORTED_ACCOUNT, ISSUE_UNSUPPORTED_ACCOUNT,
