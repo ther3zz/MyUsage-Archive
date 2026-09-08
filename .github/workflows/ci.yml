@@ -16,6 +16,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv venv -p ${{ matrix.python }} .venv
       - run: uv pip install -p .venv/bin/python -e ".[test]"
+      - run: python scripts/vendor.py --check
       - run: .venv/bin/python -m pytest -q
       - run: uvx ruff check src tests custom_components tests_ha
       - run: .venv/bin/python -m mypy src

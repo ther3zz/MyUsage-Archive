@@ -39,11 +39,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util.unit_conversion import EnergyConverter
 
-from myusage_archive.archive import Archive, HourlyBucket
-from myusage_archive.series import Anchor, Field, Plan, plan_series
-from myusage_archive.timeutil import EASTERN
-
 from .const import DOMAIN, STAT_DELIVERED, STAT_RECEIVED
+from .vendor.myusage_archive.archive import Archive, HourlyBucket
+from .vendor.myusage_archive.series import Anchor, Field, Plan, plan_series
+from .vendor.myusage_archive.timeutil import EASTERN
 
 _LOGGER = logging.getLogger(__name__)
 

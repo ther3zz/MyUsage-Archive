@@ -32,19 +32,6 @@ from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from myusage_archive.archive import Archive, BackupLock
-from myusage_archive.client import MyUsageClient
-from myusage_archive.exceptions import (
-    AuthenticationError,
-    DataError,
-    LayoutError,
-    MfaRequiredError,
-    MyUsageError,
-    UnsupportedAccountError,
-)
-from myusage_archive.service import Pipeline
-from myusage_archive.timeutil import EASTERN, eastern_today
-
 from .const import (
     ARCHIVE_DIR,
     CONF_EMAIL,
@@ -65,6 +52,18 @@ from .const import (
     STARTUP_FETCH_MIN_AGE_HOURS,
 )
 from .exporter import ExportReport, StatisticsExporter
+from .vendor.myusage_archive.archive import Archive, BackupLock
+from .vendor.myusage_archive.client import MyUsageClient
+from .vendor.myusage_archive.exceptions import (
+    AuthenticationError,
+    DataError,
+    LayoutError,
+    MfaRequiredError,
+    MyUsageError,
+    UnsupportedAccountError,
+)
+from .vendor.myusage_archive.service import Pipeline
+from .vendor.myusage_archive.timeutil import EASTERN, eastern_today
 
 _LOGGER = logging.getLogger(__name__)
 

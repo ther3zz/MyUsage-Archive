@@ -17,8 +17,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.myusage_archive.const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 from custom_components.myusage_archive.coordinator import archive_path
-from myusage_archive.archive import Archive
-from myusage_archive.parser import parse_daily_history, parse_interval_grid
+from custom_components.myusage_archive.vendor.myusage_archive.archive import Archive
+from custom_components.myusage_archive.vendor.myusage_archive.parser import (
+    parse_daily_history,
+    parse_interval_grid,
+)
 
 FIXTURES = Path(__file__).parent.parent / "tests" / "fixtures" / "live"
 REF = dt.date(2026, 9, 8)

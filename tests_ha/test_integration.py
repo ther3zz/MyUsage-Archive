@@ -31,8 +31,14 @@ from custom_components.myusage_archive.const import (
     ISSUE_LAYOUT_ERROR,
 )
 from custom_components.myusage_archive.exporter import statistic_id
-from myusage_archive.exceptions import AuthenticationError, LayoutError
-from myusage_archive.models import IntervalReading, Resolution
+from custom_components.myusage_archive.vendor.myusage_archive.exceptions import (
+    AuthenticationError,
+    LayoutError,
+)
+from custom_components.myusage_archive.vendor.myusage_archive.models import (
+    IntervalReading,
+    Resolution,
+)
 
 from .conftest import METER
 

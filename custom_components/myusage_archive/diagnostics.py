@@ -8,11 +8,10 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from myusage_archive.redact import scrub_text
-
 from .const import CONF_EMAIL, CONF_PASSWORD, STAT_DELIVERED, STAT_RECEIVED
 from .coordinator import MyUsageConfigEntry
 from .exporter import statistic_id
+from .vendor.myusage_archive.redact import scrub_text
 
 TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, "title", "unique_id"}
 

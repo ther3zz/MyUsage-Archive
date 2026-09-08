@@ -18,14 +18,6 @@ from homeassistant.config_entries import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from myusage_archive.client import MyUsageClient
-from myusage_archive.exceptions import (
-    AuthenticationError,
-    MfaRequiredError,
-    MyUsageError,
-    UnsupportedAccountError,
-)
-
 from .const import (
     CONF_EMAIL,
     CONF_FETCH_TIME,
@@ -36,6 +28,13 @@ from .const import (
     DEFAULT_JITTER_MINUTES,
     DEFAULT_KEEP_RAW_PAGES,
     DOMAIN,
+)
+from .vendor.myusage_archive.client import MyUsageClient
+from .vendor.myusage_archive.exceptions import (
+    AuthenticationError,
+    MfaRequiredError,
+    MyUsageError,
+    UnsupportedAccountError,
 )
 
 _LOGGER = logging.getLogger(__name__)

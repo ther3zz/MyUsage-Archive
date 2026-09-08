@@ -42,6 +42,7 @@ addopts = "-m 'not network'"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["custom_components/myusage_archive/vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "S", "T20", "RET", "SIM"]
@@ -50,6 +51,7 @@ ignore = ["S101"]  # asserts in tests
 [tool.ruff.lint.per-file-ignores]
 "src/myusage_archive/cli.py" = ["T20"]   # CLI prints by design
 "src/myusage_archive/probe.py" = ["T20"]
+"scripts/*.py" = ["T20"]     # sync script prints by design
 
 [tool.mypy]
 strict = true
