@@ -528,3 +528,126 @@ def test_integrity_and_stats(tmp_path: Path) -> None:
     assert stats["journal_mode"] == "wal"
     assert stats["rows"]["interval_readings"] == 672
     archive.checkpoint()  # must not raise
+
+
+# ------------------------------------------------------- daily buckets (M3)
+
+
+@cache
+def _live_daily_15mo():
+    return parse_daily_history(
+        (FIXTURES / "05-post-electric-25mo.html").read_text(encoding="utf-8")
+    )
+
+
+def _daily_loaded(tmp_path: Path, reads=None) -> Archive:
+    a = _archive(tmp_path)
+    fid = a.record_fetch("daily_range", ok=True, http_status=200)
+    a.store_daily(reads if reads is not None else _live_daily_15mo().reads, fetch_id=fid)
+    return a
+
+
+def test_daily_buckets_follow_the_portals_day_attribution(tmp_path: Path) -> None:
+    buckets = {b.day: b for b in _daily_loaded(tmp_path).daily_buckets(METER)}
+    # Failed placeholder (read 08/14 01:32) -> Aug 13: delivered 0, received 23 verbatim.
+    aug13 = buckets[dt.date(2026, 8, 13)]
+    assert (aug13.kwh_delivered, aug13.kwh_received) == (Decimal(0), Decimal(23))
+    assert buckets[dt.date(2026, 8, 13)].read_types == ("Failed",)
+    # The 48 h catch-up read that follows lands on Aug 14 with the rolled-up usage.
+    assert buckets[dt.date(2026, 8, 14)].kwh_delivered == Decimal(135)
+    # Two reads closing on the same day (a 44 h Historical + a 3.8 h Valid) are summed.
+    sep10 = buckets[dt.date(2025, 9, 10)]
+    assert sep10.reads == 2 and sep10.kwh_delivered == Decimal(99 + 8)
+    assert sep10.read_types == ("Historical", "Valid")
+    # Spans local midnight to local midnight, ordered oldest first.
+    days = list(buckets)
+    assert days == sorted(days)
+    for b in buckets.values():
+        assert b.end_utc - b.start_utc in (23 * 3600, 24 * 3600, 25 * 3600)
+        assert b.start_utc % 3600 == 0
+
+
+def test_daily_bucket_blank_field_stays_none(tmp_path: Path) -> None:
+    day = dt.date(2026, 5, 5)
+    reads = [
+        DailyRead(meter=METER, from_ts=localize(day, 90),
+                  to_ts=localize(day + dt.timedelta(days=1), 95),
+                  posted_ts=None, read_type="Valid", kwh_delivered=None, kwh_received=None),
+    ]
+    (bucket,) = _daily_loaded(tmp_path, reads).daily_buckets(METER)
+    assert bucket.day == day and bucket.kwh_delivered is None and bucket.kwh_received is None
+
+
+def test_migration_v1_to_v2_recomputes_usage_day(tmp_path: Path) -> None:
+    """A v1 archive attributed reads to their From date. Opening it with v2
+    code must rewrite every row to the portal's rule, atomically, once."""
+    archive = _daily_loaded(tmp_path)
+    raw = sqlite3.connect(tmp_path / "archive.db")
+    try:
+        # Forge the v1 state: From-date attribution and user_version=1.
+        raw.execute("UPDATE daily_reads SET usage_date_local = date(from_utc, 'unixepoch')")
+        raw.execute("PRAGMA user_version=1")
+        raw.commit()
+        forged = raw.execute(
+            "SELECT usage_date_local FROM daily_reads WHERE from_utc=?",
+            (int(localize(dt.date(2026, 8, 13), 92).timestamp()),),
+        ).fetchone()[0]
+        assert forged == "2026-08-13"
+    finally:
+        raw.close()
+
+    buckets = {b.day: b for b in archive.daily_buckets(METER)}  # triggers the migration
+    assert buckets[dt.date(2026, 8, 14)].kwh_delivered == Decimal(135)
+    assert dt.date(2025, 9, 10) in buckets and buckets[dt.date(2025, 9, 10)].reads == 2
+    raw = sqlite3.connect(tmp_path / "archive.db")
+    try:
+        assert raw.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+        assert raw.execute(
+            "SELECT COUNT(*) FROM daily_reads WHERE usage_date_local NOT LIKE '____-__-__'"
+        ).fetchone()[0] == 0
+    finally:
+        raw.close()
+
+
+def test_daily_change_days_since_sees_late_rows_and_revisions(tmp_path: Path) -> None:
+    import time
+
+    archive = _archive(tmp_path)
+    t_before = int(time.time()) - 5
+    fid = archive.record_fetch("daily", ok=True)
+    archive.store_daily(_live_daily().reads, fetch_id=fid)
+    late = archive.daily_change_days_since(METER, t_before)
+    assert late and late == sorted(late)
+    assert dt.date(2026, 8, 13) in late and dt.date(2026, 8, 14) in late
+    # Nothing after "now": no late rows.
+    assert archive.daily_change_days_since(METER, int(time.time()) + 60) == []
+
+    # A revision to one row shows up under its usage day, even with an old fetch.
+    target = next(r for r in _live_daily().reads if r.usage_date_local == dt.date(2026, 8, 14))
+    corrected = DailyRead(
+        meter=METER, from_ts=target.from_ts, to_ts=target.to_ts, posted_ts=target.posted_ts,
+        read_type=target.read_type, kwh_delivered=target.kwh_delivered + Decimal(1),
+        kwh_received=target.kwh_received, kw=target.kw, meter_reading=target.meter_reading,
+        high_f=target.high_f, low_f=target.low_f,
+    )
+    import myusage_archive.archive as archive_module
+
+    original_now = archive_module._now_utc
+    archive_module._now_utc = lambda: original_now() + 600  # noqa: SLF001
+    try:
+        fid2 = archive.record_fetch("daily", ok=True)
+        assert archive.store_daily([corrected], fetch_id=fid2).revisions == 1
+    finally:
+        archive_module._now_utc = original_now
+    changed = archive.daily_change_days_since(METER, int(time.time()) + 60)
+    assert changed == [dt.date(2026, 8, 14)]
+
+
+def test_range_fetch_covered_from_utc_uses_requested_window(tmp_path: Path) -> None:
+    archive = _archive(tmp_path)
+    assert archive.range_fetch_covered_from_utc("daily_range") is None
+    archive.record_fetch("daily_range", ok=False, window_start_utc=100)   # failures don't count
+    archive.record_fetch("daily_range", ok=True, window_start_utc=500)
+    archive.record_fetch("daily_range", ok=True, window_start_utc=300)
+    archive.record_fetch("daily", ok=True, window_start_utc=1)            # other kinds don't count
+    assert archive.range_fetch_covered_from_utc("daily_range") == 300

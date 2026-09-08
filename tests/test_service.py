@@ -20,7 +20,13 @@ from test_client import LANDING_URL, REDIRECT_URL, FakeResponse, FakeSession
 from myusage_archive.archive import Archive
 from myusage_archive.client import MyUsageClient
 from myusage_archive.exceptions import LayoutError, UnsupportedAccountError
-from myusage_archive.service import KIND_DAILY, KIND_INTERVALS, Pipeline, reparse
+from myusage_archive.service import (
+    KIND_DAILY,
+    KIND_DAILY_RANGE,
+    KIND_INTERVALS,
+    Pipeline,
+    reparse,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "live"
 REF = dt.date(2026, 9, 8)
@@ -30,8 +36,10 @@ HISTORY_URL = (
 )
 
 
-def _session(grid15_html: str, daily_html: str) -> FakeSession:
+def _session(grid15_html: str, daily_html: str, range_html: str | None = None) -> FakeSession:
     s = FakeSession()
+    if range_html is not None:
+        s.add("POST", HISTORY_URL, FakeResponse(range_html, HISTORY_URL))
     s.add("GET", "https://www.myusage.com/", FakeResponse("<html>home</html>", "https://www.myusage.com/"))
     s.add("POST", "https://www.myusage.com/login",
           FakeResponse(json.dumps({"data": "ok", "redirect_url": REDIRECT_URL}),
@@ -188,3 +196,64 @@ def test_reparse_reports_pages_that_still_fail(tmp_path: Path) -> None:
     assert len(outcomes) == 1
     assert outcomes[0].store is None
     assert outcomes[0].error and "not found" in outcomes[0].error
+
+
+# ------------------------------------------------------------------ backfill
+
+
+def _range_page() -> str:
+    return (FIXTURES / "05-post-electric-25mo.html").read_text(encoding="utf-8")
+
+
+async def test_backfill_runs_once_per_requested_span(tmp_path: Path) -> None:
+    grid15, daily = _live_pages()
+    archive = Archive(tmp_path / "a.db")
+
+    async def cycle(days: int):
+        session = _session(grid15, daily, _range_page())
+        pipeline = Pipeline(
+            MyUsageClient("u@example.com", "pw", session),  # type: ignore[arg-type]
+            archive, reference_date=REF,
+        )
+        return await pipeline.run_cycle(backfill_days=days), session
+
+    result, session = await cycle(730)
+    assert result.backfill is not None and result.backfill.kind == KIND_DAILY_RANGE
+    assert result.backfill.store is not None
+    # 458 rows in the 15-month capture, 59 already stored by the default fetch.
+    assert result.backfill.store.inserted == 458 - 59
+    assert result.backfill.store.unchanged == 59
+    form = [d for d in session.posted if "FromDate" in d]
+    assert len(form) == 1
+    assert form[0]["ToDate"] == (dt.date.today() + dt.timedelta(days=1)).strftime("%m/%d/%Y")
+
+    # Same span again: nothing to do, no POST.
+    result, session = await cycle(730)
+    assert result.backfill is None
+    assert not [d for d in session.posted if "FromDate" in d]
+
+    # A wider span is a new request.
+    result, session = await cycle(1000)
+    assert result.backfill is not None
+    assert result.backfill.store is not None and result.backfill.store.inserted == 0
+
+    # Range fetches record the *requested* window, not what came back.
+    import asyncio
+
+    history = await asyncio.to_thread(archive.fetch_history)
+    fetches = [f for f in history if f["kind"] == KIND_DAILY_RANGE]
+    assert len(fetches) == 2
+    covered = await asyncio.to_thread(archive.range_fetch_covered_from_utc, KIND_DAILY_RANGE)
+    assert covered == min(f["window_start_utc"] for f in fetches)
+
+
+async def test_backfill_off_by_default_and_for_zero(tmp_path: Path) -> None:
+    grid15, daily = _live_pages()
+    session = _session(grid15, daily, _range_page())
+    pipeline = Pipeline(
+        MyUsageClient("u@example.com", "pw", session),  # type: ignore[arg-type]
+        Archive(tmp_path / "a.db"), reference_date=REF,
+    )
+    assert (await pipeline.run_cycle()).backfill is None
+    assert (await pipeline.run_cycle(backfill_days=0)).backfill is None
+    assert not [d for d in session.posted if "FromDate" in d]

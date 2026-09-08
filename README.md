@@ -23,7 +23,7 @@ grid return statistics.
 | M0 — probe harness, portal facts verified live | done |
 | M1 — strict parser, SQLite archive, daily fetch loop, CLI | done |
 | M2 — Home Assistant integration (Energy dashboard statistics) | **done, awaiting first production install** |
-| M3 — daily-history backfill (~15 months available), repair tooling | planned |
+| M3 — daily-history backfill (~15 months) as midnight buckets, flip-safe re-import | **done** |
 | M4 — DST validation (Nov 2026 capture), non-solar/multi-meter fixtures | planned |
 
 ## Home Assistant integration (M2)
@@ -48,6 +48,31 @@ portal corrections re-import contiguously from the changed hour, and a
 deleted or restored recorder is rebuilt from the archive instead of producing
 negative bars. No solar-production statistic is exported: the portal exposes
 export, not gross generation.
+
+### Backfill (M3)
+
+The 15-minute grid only ever covers the last seven days, but the daily
+Usage History table goes back about fifteen months. On its first fetch the
+integration asks for that history once (option *Daily-history backfill
+span*, default 730 days; 0 disables it) and represents every day that is
+**permanently outside the interval window and has no archived intervals** as
+one statistics row at Eastern midnight carrying the day's kWh. Days with
+intervals are always represented by hours; the two never overlap, and a day
+never flips from bucket to hours in normal operation. If it does (a `reparse`
+that recovers intervals for an old day), the re-import rewrites every row the
+recorder holds in the affected span, so no stale midnight row can strand an
+old sum.
+
+Day attribution follows the portal's own daily chart, verified against three
+live captures (545 rows, zero mismatches): a read window belongs to the date
+of its *To* timestamp when the read closed at or after noon Eastern, and to
+the previous date otherwise. That is what makes a `Failed` placeholder (a
+0 kWh day) and the 48-hour catch-up read that follows it land on consecutive
+days exactly as the portal draws them. Values are exported verbatim; a blank
+day emits no row. Because the portal's read windows run roughly 01:30 to
+01:30, a "day" bucket is that read window, not a calendar day — a documented
+approximation that only affects which side of midnight about ninety minutes
+of usage land on.
 
 ### Install on Home Assistant OS
 
@@ -83,7 +108,8 @@ Four diagnostic sensors: last successful fetch, newest archived interval,
 permanently missing intervals, recoverable missing intervals. Repair issues
 are raised for layout changes, unsupported accounts, a halted export, and a
 stale archive. The diagnostics download includes the archive summary, recent
-fetches, gaps, consistency checks and exporter state, with credentials
+fetches, gaps, consistency checks, exporter state and the last export (how
+many hours and backfilled days each series represents), with credentials
 redacted.
 
 ### Migrating from `dstamen/myusage-ha`
@@ -112,6 +138,7 @@ export MYUSAGE_EMAIL="you@example.com"
 
 .venv/bin/myusage-archive login-test
 .venv/bin/myusage-archive fetch          # daily table + 15-minute grid → ./myusage-archive.db
+.venv/bin/myusage-archive backfill       # once: ~15 months of daily history (range POST)
 .venv/bin/myusage-archive status         # row counts, meter, recent fetches, integrity
 .venv/bin/myusage-archive gaps           # per-day completeness; recoverable vs PERMANENT
 .venv/bin/myusage-archive verify         # intervals vs daily table; estimated-day flags
@@ -152,7 +179,12 @@ which intervals are still fetchable and which are gone.
 - Interval row labels are interval **starts**.
 - The daily table's `Type` column is an open vocabulary: `Valid`,
   `Historical`, `Failed` all occur. `Failed` rows are zero-length placeholders
-  whose usage rolls into the next successful read.
+  whose delivered usage rolls into the next successful read; some of them
+  still carry a non-zero `kWh Received`, so no field is assumed zero.
+- The daily page's own chart attributes each read window to the date of its
+  *To* timestamp (previous date when the read closed before noon). Reads
+  close at ~01:30–03:35 normally and at 22:00–23:00 occasionally; the daily
+  range POST returns about fifteen months.
 - Both interval grids and the daily table end with `Total` and `Average`
   summary rows.
 - The interval grids abbreviate headers (`kWh Del`, `kWh Rcvd`); the daily

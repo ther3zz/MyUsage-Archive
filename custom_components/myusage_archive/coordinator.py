@@ -34,11 +34,13 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ARCHIVE_DIR,
+    CONF_BACKFILL_DAYS,
     CONF_EMAIL,
     CONF_FETCH_TIME,
     CONF_JITTER_MINUTES,
     CONF_KEEP_RAW_PAGES,
     CONF_PASSWORD,
+    DEFAULT_BACKFILL_DAYS,
     DEFAULT_FETCH_TIME,
     DEFAULT_JITTER_MINUTES,
     DEFAULT_KEEP_RAW_PAGES,
@@ -238,8 +240,9 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
         session = async_create_clientsession(self.hass, cookie_jar=aiohttp.CookieJar())
         client = MyUsageClient(email, self.config_entry.data[CONF_PASSWORD], session)
         pipeline = Pipeline(client, self.archive, run_blocking=self._run_blocking)
+        backfill_days = int(self._option(CONF_BACKFILL_DAYS, DEFAULT_BACKFILL_DAYS))
         try:
-            result = await pipeline.run_cycle(meter=self._meter)
+            result = await pipeline.run_cycle(meter=self._meter, backfill_days=backfill_days)
         except (AuthenticationError, MfaRequiredError) as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except UnsupportedAccountError as err:
@@ -259,6 +262,11 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
         self._meter = result.meter
         meters = await self._run_blocking(self.archive.meters)
         self._has_received = any(m.meter_number == result.meter and m.has_received for m in meters)
+        if result.backfill is not None and result.backfill.store is not None:
+            _LOGGER.info(
+                "daily-history backfill: %d new day row(s) archived",
+                result.backfill.store.inserted,
+            )
         store = result.intervals.store
         return store.inserted if store else 0
 

@@ -73,6 +73,8 @@ async def async_get_config_entry_diagnostics(
         else {
             "series": [asdict(s) for s in data.export.series],
             "halted": [asdict(s) for s in data.export.halted],
+            "hour_points": data.export.hour_points,
+            "day_points": data.export.day_points,
         },
         "coordinator": None
         if data is None

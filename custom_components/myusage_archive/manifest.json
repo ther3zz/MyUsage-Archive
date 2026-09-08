@@ -8,10 +8,10 @@
   "dependencies": [
     "recorder"
   ],
-  "documentation": "https://github.com/reptar/exceleron-client",
+  "documentation": "https://github.com/ther3zz/MyUsage-Archive",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/reptar/exceleron-client/issues",
+  "issue_tracker": "https://github.com/ther3zz/MyUsage-Archive/issues",
   "requirements": [
     "beautifulsoup4==4.15.0"
   ],

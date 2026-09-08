@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import StrEnum
 
+from .timeutil import usage_day
+
 
 class Resolution(StrEnum):
     """Interval resolutions the portal exposes."""
@@ -65,8 +67,10 @@ class DailyRead:
 
     `read_type` is stored verbatim: the live portal emits at least `Valid`,
     `Historical`, `Failed` and empty, so this is an open vocabulary, not an
-    enum. `Failed` rows are zero-length placeholders (from == to, zero usage
-    and zero reading) whose consumption rolls into the next successful read.
+    enum. `Failed` rows are zero-length placeholders (from == to, zero
+    delivered usage and zero reading) whose delivered consumption rolls into
+    the next successful read; the live portal still shows a non-zero
+    `kWh Received` on some of them, so no field is ever assumed to be zero.
     """
 
     meter: str
@@ -90,9 +94,20 @@ class DailyRead:
         return self.to_ts is not None and self.to_ts == self.from_ts
 
     @property
+    def read_end(self) -> dt.datetime:
+        """When the window closed; a placeholder without a ``To`` closes at ``From``."""
+        return self.to_ts if self.to_ts is not None else self.from_ts
+
+    @property
     def usage_date_local(self) -> dt.date:
-        """The local date a read window is attributed to (its start)."""
-        return self.from_ts.date()
+        """The local date the portal attributes this window to.
+
+        Follows the portal's own chart (see :func:`timeutil.usage_day`): the
+        date is decided by when the read *closed*, so a ``Failed`` placeholder
+        and the multi-day read that follows it land on consecutive days,
+        exactly as the portal draws them.
+        """
+        return usage_day(self.read_end)
 
 
 @dataclass(frozen=True, slots=True)

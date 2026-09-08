@@ -3,6 +3,7 @@
 Network verbs (need credentials):
   myusage-archive login-test              verify credentials + landing page
   myusage-archive fetch                   one archive cycle: daily table + 15-min grid
+  myusage-archive backfill [--days N]     one-shot daily-history range fetch (~15 months)
   myusage-archive probe [--grids-only]    M0 probe/capture harness
   myusage-archive probe --recheck         next-day session-lifetime check
 
@@ -41,6 +42,7 @@ from .probe import ProbeRunner
 from .service import Pipeline, reparse
 
 DEFAULT_DB = "myusage-archive.db"
+DEFAULT_BACKFILL_DAYS = 730  # a 25-month request returned ~15 months (2026-09-08)
 
 
 # ----------------------------------------------------------------- helpers
@@ -142,6 +144,32 @@ async def _fetch(email: str, password: str, archive: Archive, meter: str | None)
     return 0
 
 
+async def _backfill(email: str, password: str, archive: Archive, days: int) -> int:
+    async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar()) as session:
+        client = MyUsageClient(email, password, session)
+        pipeline = Pipeline(client, archive)
+        try:
+            await client.login()
+            outcome = await pipeline.backfill_daily(days=days)
+        except AuthenticationError as err:
+            print(f"AUTH FAILED: {err}")
+            return 2
+        except MyUsageError as err:
+            print(f"ERROR: {err}")
+            print("(if this was a parse failure, the raw page was kept: see `status`)")
+            return 1
+    store = outcome.store
+    assert store is not None
+    print(f"backfill  : fetch {outcome.fetch_id}: +{store.inserted} new, "
+          f"{store.updated} updated, {store.unchanged} unchanged, {store.revisions} revisions")
+    for meter in outcome.meters:
+        buckets = archive.daily_buckets(meter)
+        if buckets:
+            print(f"  {meter}: daily history {buckets[0].day} .. {buckets[-1].day} "
+                  f"({len(buckets)} days)")
+    return 0
+
+
 # -------------------------------------------------------------- local verbs
 
 
@@ -156,6 +184,9 @@ def _status(archive: Archive) -> int:
         span = f"{_fmt_utc(rng[0])} .. {_fmt_utc(rng[1])}" if rng else "no intervals"
         print(f"meter   : {m.meter_number}  received-register={'yes' if m.has_received else 'no'}"
               f"  intervals {span}")
+        days = archive.daily_buckets(m.meter_number)
+        if days:
+            print(f"          daily history {days[0].day} .. {days[-1].day} ({len(days)} days)")
     print("recent fetches:")
     for f in archive.fetch_history(limit=10):
         status = "ok " if f["ok"] else "ERR"
@@ -267,6 +298,14 @@ def main(argv: list[str] | None = None) -> int:
     p_fetch = sub.add_parser("fetch", help="run one archive cycle (daily table + 15-min grid)")
     p_fetch.add_argument("--meter", help="meter number (default: the single meter on the account)")
 
+    p_backfill = sub.add_parser(
+        "backfill", help="one-shot daily-history range fetch for the statistics backfill"
+    )
+    p_backfill.add_argument(
+        "--days", type=int, default=DEFAULT_BACKFILL_DAYS,
+        help=f"how far back to ask for (default {DEFAULT_BACKFILL_DAYS}; "
+             "the portal keeps ~15 months)",
+    )
     p_probe = sub.add_parser("probe", help="M0 probe/capture harness")
     p_probe.add_argument("--out", default="probes", help="output directory (default: probes/)")
     p_probe.add_argument("--scrub", action="append", default=[], metavar="TEXT",
@@ -278,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
     p_probe.add_argument("--recheck", action="store_true",
                          help="test whether a previously saved session is still alive")
 
-    for p in (p_login, p_fetch, p_probe):
+    for p in (p_login, p_fetch, p_backfill, p_probe):
         p.add_argument("--email", help="account email (or MYUSAGE_EMAIL)")
         p.add_argument("--password", help="account password (prefer MYUSAGE_PASSWORD or prompt)")
 
@@ -314,6 +353,9 @@ def _dispatch(args: argparse.Namespace) -> int:
     if args.command == "fetch":
         email, password = _resolve_credentials(args)
         return asyncio.run(_fetch(email, password, _archive(args), args.meter))
+    if args.command == "backfill":
+        email, password = _resolve_credentials(args)
+        return asyncio.run(_backfill(email, password, _archive(args), args.days))
     if args.command == "probe":
         return _probe(args)
     if args.command == "status":

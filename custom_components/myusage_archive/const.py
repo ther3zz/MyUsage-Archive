@@ -9,10 +9,15 @@ CONF_PASSWORD = "password"  # noqa: S105 - a key name, not a secret
 CONF_FETCH_TIME = "fetch_time"          # "HH:MM", America/New_York wall clock
 CONF_JITTER_MINUTES = "jitter_minutes"
 CONF_KEEP_RAW_PAGES = "keep_raw_pages"
+CONF_BACKFILL_DAYS = "backfill_days"     # one-shot daily-history range fetch span
 
 DEFAULT_FETCH_TIME = "12:15"            # ~2 h after the portal's ~10:28 AM Eastern batch
 DEFAULT_JITTER_MINUTES = 10
 DEFAULT_KEEP_RAW_PAGES = 3
+# The portal keeps ~15 months of daily history (a 25-month request returned
+# data from 2025-06-05 on 2026-09-08); asking for two years returns all of it.
+DEFAULT_BACKFILL_DAYS = 730
+MAX_BACKFILL_DAYS = 1100
 
 # Retry when the scheduled fetch finds no new interval rows (batch not yet
 # published) or fails transiently. Short on purpose: data is 2 days old

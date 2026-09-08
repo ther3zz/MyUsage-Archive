@@ -34,7 +34,7 @@ import zlib
 
 # Column names interpolated into SQL below come from hardcoded tuples/dicts in
 # this module, never from input; the S608 suppressions are deliberate.
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
@@ -43,11 +43,11 @@ from typing import Any
 
 from .exceptions import ArchiveVersionError, BlockingCallError
 from .models import DailyRead, IntervalReading, LayoutSignature, Resolution
-from .timeutil import EASTERN, day_slots, localize
+from .timeutil import EASTERN, day_slots, local_midnight_utc, localize, usage_day
 
 _LOGGER = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Portal behaviour that gap math depends on (verified 2026-09-07/08).
 PORTAL_LAG_DAYS = 2           # newest interval column is today - 2
@@ -137,9 +137,27 @@ CREATE TABLE exporter_state (
 );
 """
 
+
+
+def _migrate_v2_usage_day(conn: sqlite3.Connection) -> None:
+    """v1 attributed a daily read to its *From* date; the portal attributes it
+    by when the read closed (timeutil.usage_day). Recompute every row."""
+    rows = conn.execute("SELECT rowid, from_utc, to_utc FROM daily_reads").fetchall()
+    for row in rows:
+        end = row["to_utc"] if row["to_utc"] is not None else row["from_utc"]
+        day = usage_day(dt.datetime.fromtimestamp(int(end), dt.UTC))
+        conn.execute(
+            "UPDATE daily_reads SET usage_date_local=? WHERE rowid=?",
+            (day.isoformat(), row["rowid"]),
+        )
+
+
 # Ordered, forward-only migrations: version N -> N+1. Version 1 is created by
-# _SCHEMA; later entries transform an existing database in place.
-_MIGRATIONS: dict[int, str] = {}
+# _SCHEMA; later entries transform an existing database in place, either as a
+# SQL script or as a Python step (for anything SQL cannot compute).
+_MIGRATIONS: dict[int, str | Callable[[sqlite3.Connection], None]] = {
+    2: _migrate_v2_usage_day,
+}
 
 
 # ----------------------------------------------------------------- results
@@ -189,6 +207,25 @@ class HourlyBucket:
     @property
     def start(self) -> dt.datetime:
         return dt.datetime.fromtimestamp(self.start_utc, dt.UTC)
+
+
+@dataclass(frozen=True, slots=True)
+class DailyBucket:
+    """One local day of the daily Usage History table, summed across its reads.
+
+    Spans local midnight to the next local midnight. Values are the portal's
+    own per-day attribution (see :func:`timeutil.usage_day`), which follows
+    ~01:30-aligned read windows rather than midnight; that approximation is
+    documented and is exactly what the portal's own daily chart shows.
+    """
+
+    day: dt.date
+    start_utc: int
+    end_utc: int
+    kwh_delivered: Decimal | None
+    kwh_received: Decimal | None
+    reads: int
+    read_types: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -408,12 +445,22 @@ class Archive:
             _LOGGER.info("created archive %s (schema v%s)", self.path, SCHEMA_VERSION)
             return
         for target in range(version + 1, SCHEMA_VERSION + 1):
-            script = _MIGRATIONS.get(target)
-            if script is None:
+            step = _MIGRATIONS.get(target)
+            if step is None:
                 raise ArchiveVersionError(f"no migration to schema v{target}")
-            conn.executescript(
-                f"BEGIN IMMEDIATE;\n{script}\nPRAGMA user_version={target};\nCOMMIT;"
-            )
+            if isinstance(step, str):
+                conn.executescript(
+                    f"BEGIN IMMEDIATE;\n{step}\nPRAGMA user_version={target};\nCOMMIT;"
+                )
+            else:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    step(conn)
+                    conn.execute(f"PRAGMA user_version={target}")
+                    conn.execute("COMMIT")
+                except BaseException:
+                    conn.execute("ROLLBACK")
+                    raise
             _LOGGER.info("migrated archive %s to schema v%s", self.path, target)
 
     # -- meters
@@ -917,6 +964,35 @@ class Archive:
             )
         return out
 
+    def daily_buckets(self, meter: str) -> list[DailyBucket]:
+        """Daily reads grouped by the portal's usage day, oldest first.
+
+        A field is the decimal sum of the day's rows that carry it, or
+        ``None`` when no row does — never zero for a blank.
+        """
+        groups: dict[dt.date, dict[str, Any]] = {}
+        for read in self.daily_reads(meter):
+            day = read.usage_date_local
+            g = groups.setdefault(day, {"del": None, "rcv": None, "n": 0, "types": []})
+            g["n"] += 1
+            g["types"].append(read.read_type)
+            if read.kwh_delivered is not None:
+                g["del"] = (g["del"] or Decimal(0)) + read.kwh_delivered
+            if read.kwh_received is not None:
+                g["rcv"] = (g["rcv"] or Decimal(0)) + read.kwh_received
+        return [
+            DailyBucket(
+                day=day,
+                start_utc=local_midnight_utc(day),
+                end_utc=local_midnight_utc(day + dt.timedelta(days=1)),
+                kwh_delivered=g["del"],
+                kwh_received=g["rcv"],
+                reads=g["n"],
+                read_types=tuple(g["types"]),
+            )
+            for day, g in sorted(groups.items())
+        ]
+
     # -- change tracking for the exporter
 
     def revisions_since(self, since_utc: int, *, meter: str | None = None) -> list[Revision]:
@@ -967,6 +1043,46 @@ class Archive:
                 "  WHERE i.meter_id=? AND i.resolution=? AND f.fetched_at_utc>?"
                 ")",
                 (m["id"], resolution.value, since_utc, m["id"], resolution.value, since_utc),
+            ).fetchone()
+        return None if row is None or row["s"] is None else int(row["s"])
+
+    def daily_change_days_since(self, meter: str, since_utc: int) -> list[dt.date]:
+        """Usage days whose daily rows were written after ``since_utc``.
+
+        Covers value revisions and late-arriving rows alike (a backfill is
+        one big late arrival). The exporter intersects this with the days it
+        actually represents as midnight buckets.
+        """
+        with self._connect() as conn:
+            m = self._meter_row(conn, meter)
+            if m is None:
+                return []
+            rows = conn.execute(
+                "SELECT DISTINCT d.usage_date_local AS day FROM daily_reads d"
+                " JOIN fetches f ON f.id=d.fetch_id"
+                " WHERE d.meter_id=? AND f.fetched_at_utc>?"
+                " UNION"
+                " SELECT DISTINCT d.usage_date_local AS day FROM daily_reads d"
+                " JOIN revisions r ON r.meter_id=d.meter_id AND r.start_utc=d.from_utc"
+                "  AND r.resolution='daily'"
+                " WHERE d.meter_id=? AND r.changed_at_utc>?"
+                " ORDER BY day",
+                (m["id"], since_utc, m["id"], since_utc),
+            ).fetchall()
+        return [dt.date.fromisoformat(r["day"]) for r in rows]
+
+    def range_fetch_covered_from_utc(self, kind: str) -> int | None:
+        """Earliest *requested* window start among successful fetches of ``kind``.
+
+        Range fetches record the window they asked for, not what came back,
+        so "has this span been requested before" is answerable even when the
+        portal returned less than was asked.
+        """
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT MIN(window_start_utc) AS s FROM fetches WHERE kind=? AND ok=1"
+                " AND window_start_utc IS NOT NULL",
+                (kind,),
             ).fetchone()
         return None if row is None or row["s"] is None else int(row["s"])
 

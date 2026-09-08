@@ -8,6 +8,7 @@ import pytest
 
 from myusage_archive.exceptions import DataError
 from myusage_archive.timeutil import (
+    EASTERN,
     day_length_minutes,
     day_slots,
     eastern_today,
@@ -180,3 +181,44 @@ def test_eastern_today_uses_eastern_not_utc() -> None:
     """Late-evening Eastern is already tomorrow in UTC; the reference must not slip."""
     late = dt.datetime(2026, 9, 9, 2, 30, tzinfo=dt.UTC)  # 10:30 PM Sep 8 Eastern
     assert eastern_today(late) == dt.date(2026, 9, 8)
+
+
+# ------------------------------------------------------------ usage day (M3)
+
+
+def _local(y: int, m: int, d: int, hh: int, mm: int) -> dt.datetime:
+    return dt.datetime(y, m, d, hh, mm, tzinfo=EASTERN)
+
+
+def test_usage_day_small_hours_read_belongs_to_previous_day() -> None:
+    from myusage_archive.timeutil import usage_day
+
+    assert usage_day(_local(2026, 8, 14, 1, 32)) == dt.date(2026, 8, 13)   # Failed placeholder
+    assert usage_day(_local(2026, 8, 15, 1, 42)) == dt.date(2026, 8, 14)   # 48 h catch-up read
+    assert usage_day(_local(2025, 11, 10, 3, 35)) == dt.date(2025, 11, 9)  # winter schedule
+    assert usage_day(_local(2025, 9, 11, 0, 5)) == dt.date(2025, 9, 10)
+
+
+def test_usage_day_late_read_belongs_to_its_own_day() -> None:
+    from myusage_archive.timeutil import usage_day
+
+    assert usage_day(_local(2026, 7, 12, 23, 0)) == dt.date(2026, 7, 12)
+    assert usage_day(_local(2025, 6, 13, 22, 11)) == dt.date(2025, 6, 13)
+    assert usage_day(_local(2026, 1, 1, 12, 0)) == dt.date(2026, 1, 1)     # noon is "late"
+    assert usage_day(_local(2026, 1, 1, 11, 59)) == dt.date(2025, 12, 31)
+
+
+def test_usage_day_is_decided_on_eastern_wall_clock() -> None:
+    from myusage_archive.timeutil import usage_day
+
+    # 05:30 UTC on Nov 2 is 01:30 EDT on Nov 1 (fall-back day): previous day, Oct 31.
+    assert usage_day(dt.datetime(2026, 11, 1, 5, 30, tzinfo=dt.UTC)) == dt.date(2026, 10, 31)
+
+
+def test_local_midnight_utc_is_top_of_hour_across_dst() -> None:
+    from myusage_archive.timeutil import local_midnight_utc
+
+    for day in (dt.date(2026, 3, 8), dt.date(2026, 11, 1), dt.date(2026, 7, 4)):
+        assert local_midnight_utc(day) % 3600 == 0
+    fall_back = local_midnight_utc(dt.date(2026, 11, 2)) - local_midnight_utc(dt.date(2026, 11, 1))
+    assert fall_back == 25 * 3600

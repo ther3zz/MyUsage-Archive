@@ -22,6 +22,7 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
 )
 
 from custom_components.myusage_archive.const import (
+    CONF_BACKFILL_DAYS,
     CONF_EMAIL,
     CONF_FETCH_TIME,
     CONF_JITTER_MINUTES,
@@ -44,6 +45,16 @@ from .conftest import METER
 
 DELIVERED = statistic_id(METER, "energy_delivered")
 RECEIVED = statistic_id(METER, "energy_received")
+
+# The seeded archive: 7 days of 15-minute intervals (Aug 31 - Sep 6, 168 hours)
+# plus the 60-day daily table. Days before the intervals that are permanently
+# outside the portal window become midnight buckets: Jul 10 - Aug 30 = 52.
+HOURS = 168
+DAYS = 52
+INTERVAL_DELIVERED = 432.294
+INTERVAL_RECEIVED = 207.642
+BACKFILL_DELIVERED = 3127.0
+BACKFILL_RECEIVED = 1608.0
 
 
 async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -88,10 +99,10 @@ async def test_setup_exports_both_series_from_a_seeded_archive(
     assert entry.state is ConfigEntryState.LOADED
     delivered = await _all_rows(hass, DELIVERED)
     received = await _all_rows(hass, RECEIVED)
-    assert len(delivered) == 168 and len(received) == 168
+    assert len(delivered) == HOURS + DAYS and len(received) == HOURS + DAYS
     # Exact totals from the live capture, as a float of the decimal fold.
-    assert delivered[-1]["sum"] == pytest.approx(432.294, abs=1e-9)
-    assert received[-1]["sum"] == pytest.approx(207.642, abs=1e-9)
+    assert delivered[-1]["sum"] == pytest.approx(BACKFILL_DELIVERED + INTERVAL_DELIVERED, abs=1e-9)
+    assert received[-1]["sum"] == pytest.approx(BACKFILL_RECEIVED + INTERVAL_RECEIVED, abs=1e-9)
     sums = [r["sum"] for r in delivered]
     assert sums == sorted(sums)  # monotonic
     assert all(r["state"] >= 0 for r in delivered)
@@ -99,7 +110,96 @@ async def test_setup_exports_both_series_from_a_seeded_archive(
     data = entry.runtime_data.data
     assert data.meter == METER and data.has_received
     assert data.fetched_this_refresh is False
-    assert data.export is not None and data.export.imported_rows == 336
+    assert data.export is not None and data.export.imported_rows == 2 * (HOURS + DAYS)
+    assert (data.export.hour_points, data.export.day_points) == (HOURS, DAYS)
+
+
+async def test_backfill_days_are_midnight_buckets_that_seam_into_the_hours(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+) -> None:
+    """Each bucketed day is one row at Eastern midnight carrying the day's
+    kWh; the first interval hour continues the running sum from the last
+    bucket, so the dashboard shows daily bars then hourly bars with no seam."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline"):
+        await _setup(hass, entry)
+    rows = await _all_rows(hass, DELIVERED)
+    buckets, hours = rows[:DAYS], rows[DAYS:]
+    from custom_components.myusage_archive.vendor.myusage_archive.timeutil import EASTERN
+
+    starts = [dt.datetime.fromtimestamp(r["start"], dt.UTC).astimezone(EASTERN) for r in buckets]
+    assert all(s.hour == 0 and s.minute == 0 for s in starts)
+    assert [s.date() for s in starts][0] == dt.date(2026, 7, 10)
+    assert [s.date() for s in starts][-1] == dt.date(2026, 8, 30)
+    # Aug 13 is the Failed placeholder: delivered 0 verbatim, then the 48 h read on Aug 14.
+    by_day = {s.date(): r for s, r in zip(starts, buckets, strict=True)}
+    assert by_day[dt.date(2026, 8, 13)]["state"] == 0.0
+    assert by_day[dt.date(2026, 8, 14)]["state"] == 135.0
+    assert by_day[dt.date(2026, 8, 30)]["state"] == 58.0
+    assert buckets[-1]["sum"] == pytest.approx(BACKFILL_DELIVERED, abs=1e-9)
+    first_hour = dt.datetime.fromtimestamp(hours[0]["start"], dt.UTC).astimezone(EASTERN)
+    assert first_hour == dt.datetime(2026, 8, 31, 0, 0, tzinfo=EASTERN)
+    assert hours[0]["sum"] == pytest.approx(BACKFILL_DELIVERED + hours[0]["state"], abs=1e-9)
+    # No day inside the interval span was bucketed (Aug 31 - Sep 6 have intervals).
+    assert all(r["start"] % 3600 == 0 for r in rows)
+    assert len({r["start"] for r in rows}) == len(rows)
+
+
+async def test_day_that_gains_intervals_flips_without_a_stranded_bucket(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded, monkeypatch
+) -> None:
+    """Plan §5 flip rule: a bucketed day that later gets 15-minute data (a
+    reparse of a page that used to fail) is re-imported as hours. The old
+    midnight row is rewritten - here with hour 00:00's own value - and every
+    later sum shifts by the difference. Never a rewind, never a phantom bar."""
+    from custom_components.myusage_archive.vendor.myusage_archive.timeutil import (
+        EASTERN,
+        localize,
+    )
+
+    with patch("custom_components.myusage_archive.coordinator.Pipeline"):
+        await _setup(hass, entry)
+        coordinator = entry.runtime_data
+        before = await _all_rows(hass, DELIVERED)
+        import time
+
+        monkeypatch.setattr(
+            "custom_components.myusage_archive.vendor.myusage_archive.archive._now_utc",
+            lambda: int(time.time()) + 60,
+        )
+        flip_day = dt.date(2026, 8, 30)  # was a 58 kWh bucket
+        readings = [
+            IntervalReading(
+                meter=METER, start=localize(flip_day, m), resolution=Resolution.FIFTEEN_MIN,
+                kwh_delivered=Decimal("0.5"), kwh_received=Decimal("0.25"),
+            )
+            for m in range(0, 1440, 15)
+        ]  # 96 x 0.5 = 48 kWh delivered
+
+        def _ingest() -> None:
+            fid = seeded.record_fetch("grid15", ok=True)
+            seeded.store_intervals(readings, meter=METER, fetch_id=fid)
+
+        await hass.async_add_executor_job(_ingest)
+        with patch.object(coordinator, "_fetch_cycle", AsyncMock(return_value=0)):
+            await coordinator.async_refresh()
+            await async_wait_recording_done(hass)
+
+    after = await _all_rows(hass, DELIVERED)
+    assert len(after) == len(before) - 1 + 24
+    midnight = int(dt.datetime(2026, 8, 30, 0, 0, tzinfo=EASTERN).timestamp())
+    old = next(r for r in before if r["start"] == midnight)
+    new = next(r for r in after if r["start"] == midnight)
+    assert (old["state"], new["state"]) == (58.0, 2.0)
+    assert new["sum"] == pytest.approx(old["sum"] - 58.0 + 2.0, abs=1e-9)
+    # Everything after the flipped day shifts by 48 - 58 = -10 kWh; before it is untouched.
+    for row in after:
+        if row["start"] < midnight:
+            assert row["sum"] == next(r for r in before if r["start"] == row["start"])["sum"]
+    assert after[-1]["sum"] == pytest.approx(before[-1]["sum"] - 10.0, abs=1e-9)
+    sums = [r["sum"] for r in after]
+    assert sums == sorted(sums)
+    actions = {s.statistic_id: s.action for s in coordinator.data.export.series}
+    assert actions[DELIVERED] == "reimport"
 
 
 async def test_second_refresh_is_idempotent(
@@ -132,7 +232,10 @@ async def test_revision_triggers_contiguous_reimport(
         # unambiguously "later" than the export, as it would be in real life.
         import time
 
-        monkeypatch.setattr("myusage_archive.archive._now_utc", lambda: int(time.time()) + 60)
+        monkeypatch.setattr(
+            "custom_components.myusage_archive.vendor.myusage_archive.archive._now_utc",
+            lambda: int(time.time()) + 60,
+        )
 
         # Correct the first interval of the 3rd day (+1 kWh) as a later fetch would.
         target = seeded.intervals(METER)[2 * 96]
@@ -178,8 +281,8 @@ async def test_deleted_series_is_rebuilt(
             await coordinator.async_refresh()
             await async_wait_recording_done(hass)
     rows = await _all_rows(hass, DELIVERED)
-    assert len(rows) == 168
-    assert rows[-1]["sum"] == pytest.approx(432.294, abs=1e-9)
+    assert len(rows) == HOURS + DAYS
+    assert rows[-1]["sum"] == pytest.approx(BACKFILL_DELIVERED + INTERVAL_DELIVERED, abs=1e-9)
 
 
 # ------------------------------------------------------------- fetch path
@@ -310,16 +413,32 @@ async def test_options_flow_validates_time(
         assert result["type"] is FlowResultType.FORM
         bad = await hass.config_entries.options.async_configure(
             result["flow_id"],
-            {CONF_FETCH_TIME: "25:99", CONF_JITTER_MINUTES: 5, CONF_KEEP_RAW_PAGES: 2},
+            {CONF_FETCH_TIME: "25:99", CONF_JITTER_MINUTES: 5, CONF_BACKFILL_DAYS: 400,
+             CONF_KEEP_RAW_PAGES: 2},
         )
         assert bad["errors"] == {CONF_FETCH_TIME: "invalid_time"}
         good = await hass.config_entries.options.async_configure(
             bad["flow_id"],
-            {CONF_FETCH_TIME: "13:05", CONF_JITTER_MINUTES: 5, CONF_KEEP_RAW_PAGES: 2},
+            {CONF_FETCH_TIME: "13:05", CONF_JITTER_MINUTES: 5, CONF_BACKFILL_DAYS: 400,
+             CONF_KEEP_RAW_PAGES: 2},
         )
         await hass.async_block_till_done()
     assert good["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_FETCH_TIME] == "13:05"
+    assert entry.options[CONF_BACKFILL_DAYS] == 400
+
+
+async def test_backfill_span_reaches_the_pipeline(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """Empty archive => first refresh fetches, passing the configured span
+    (default 730 days) so the pipeline can run its one-shot range POST."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline") as pipeline:
+        pipeline.return_value.run_cycle = AsyncMock(side_effect=LayoutError("stop here"))
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    pipeline.return_value.run_cycle.assert_awaited_once_with(meter=None, backfill_days=730)
 
 
 # -------------------------------------------------------------- lifecycle

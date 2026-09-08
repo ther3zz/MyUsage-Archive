@@ -19,15 +19,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .const import (
+    CONF_BACKFILL_DAYS,
     CONF_EMAIL,
     CONF_FETCH_TIME,
     CONF_JITTER_MINUTES,
     CONF_KEEP_RAW_PAGES,
     CONF_PASSWORD,
+    DEFAULT_BACKFILL_DAYS,
     DEFAULT_FETCH_TIME,
     DEFAULT_JITTER_MINUTES,
     DEFAULT_KEEP_RAW_PAGES,
     DOMAIN,
+    MAX_BACKFILL_DAYS,
 )
 from .vendor.myusage_archive.client import MyUsageClient
 from .vendor.myusage_archive.exceptions import (
@@ -118,7 +121,7 @@ class MyUsageConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class MyUsageOptionsFlow(OptionsFlowWithReload):
-    """Fetch time (Eastern), jitter, raw-page retention. Reloads on save."""
+    """Fetch time (Eastern), jitter, backfill span, raw-page retention. Reloads on save."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -132,6 +135,9 @@ class MyUsageOptionsFlow(OptionsFlowWithReload):
             CONF_JITTER_MINUTES: self.config_entry.options.get(
                 CONF_JITTER_MINUTES, DEFAULT_JITTER_MINUTES
             ),
+            CONF_BACKFILL_DAYS: self.config_entry.options.get(
+                CONF_BACKFILL_DAYS, DEFAULT_BACKFILL_DAYS
+            ),
             CONF_KEEP_RAW_PAGES: self.config_entry.options.get(
                 CONF_KEEP_RAW_PAGES, DEFAULT_KEEP_RAW_PAGES
             ),
@@ -140,6 +146,9 @@ class MyUsageOptionsFlow(OptionsFlowWithReload):
             {
                 vol.Required(CONF_FETCH_TIME): str,
                 vol.Required(CONF_JITTER_MINUTES): vol.All(int, vol.Range(min=0, max=180)),
+                vol.Required(CONF_BACKFILL_DAYS): vol.All(
+                    int, vol.Range(min=0, max=MAX_BACKFILL_DAYS)
+                ),
                 vol.Required(CONF_KEEP_RAW_PAGES): vol.All(int, vol.Range(min=0, max=30)),
             }
         )

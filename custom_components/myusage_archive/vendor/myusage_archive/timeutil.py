@@ -235,6 +235,35 @@ def parse_local_date(text: str) -> dt.date:
         raise DataError(f"impossible date {text!r}: {err}") from err
 
 
+# The portal closes a "day" with a meter read in the small hours (observed
+# ~01:30-03:35 local) and attributes that read window to the *previous*
+# calendar date; the rare late read (~22:00-23:00) is attributed to its own
+# date. Any wall-clock threshold between those clusters reproduces the
+# portal's own daily chart; noon is the obvious choice and is documented.
+USAGE_DAY_THRESHOLD_HOUR = 12
+
+
+def usage_day(read_end: dt.datetime) -> dt.date:
+    """The local calendar day the portal attributes a read window to.
+
+    Verified 2026-09-08 against the daily page's own chart (three captures,
+    545 rows, zero mismatches): a window ending before noon Eastern belongs
+    to the previous date, one ending at or after noon to its own date. Only
+    the *end* of the window matters, which is what makes zero-length
+    ``Failed`` placeholders and multi-day catch-up reads land where the
+    portal puts them. Compared on wall-clock time, so no DST arithmetic.
+    """
+    local = read_end.astimezone(EASTERN)
+    if local.hour < USAGE_DAY_THRESHOLD_HOUR:
+        return local.date() - dt.timedelta(days=1)
+    return local.date()
+
+
+def local_midnight_utc(day: dt.date) -> int:
+    """Epoch seconds of local (Eastern) midnight starting ``day``."""
+    return int(dt.datetime.combine(day, dt.time(0), EASTERN).timestamp())
+
+
 def eastern_today(now: dt.datetime | None = None) -> dt.date:
     """Today's date in Eastern — the correct reference for year inference."""
     moment = now or dt.datetime.now(dt.UTC)

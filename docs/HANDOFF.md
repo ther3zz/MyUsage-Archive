@@ -51,7 +51,7 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
   96 data rows + 2 summary rows (`Total`, `Average`). Per-day metric group: `°F, kWh Del, kWh Rcvd, kW`
   (stride 4; hourly grid stride 3, no kW). **Labels are interval STARTS.** `kW` is derived (kWhDel×4).
 - Daily table: `Meter|High|Low|Posted|From|To|kWh Delivered|kWh Received|kW|Reading|Type`; read windows are
-  ~01:30→~01:30 (not midnight); also ends with `Total`/`Average` rows. `Type` is an open vocabulary:
+  ~01:30→~01:30 (not midnight; 02:3x/03:2x in older/winter rows); also ends with `Total`/`Average` rows. `Type` is an open vocabulary:
   `Valid`, `Historical`, `Failed` (+blank). **`Failed` rows are zero-length placeholders** (From==To, kWh 0,
   Reading 0) whose usage rolls into the next successful read. Interval sums reconcile with daily windows within
   daily rounding (<1 kWh).
@@ -100,16 +100,33 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
     `recorder_db_url` first solves it); the harness reuses ONE config dir for all tests → use unique entry ids and
     delete archives per test; leftover timers fail tests → cancel the coordinator timer on setup failure.
 12. `type X = …` aliases trip ruff's py311 target; use a plain assignment after the class.
-13. myusage-ha (prior art) is wrong on solar (fixed indices) and rewrites statistics with a new baseline every poll;
+13. HA tests must monkeypatch the **vendored** module path (`custom_components.myusage_archive.vendor.…`), not
+    the top-level package — a stale patch target made `test_revision_triggers_contiguous_reimport` fail after
+    vendoring. `python` is not on PATH here; use `.venv/bin/python scripts/vendor.py`.
+14. myusage-ha (prior art) is wrong on solar (fixed indices) and rewrites statistics with a new baseline every poll;
     its orphaned ids: `myusage:electric_kwh`, `myusage:water_gal`, `myusage:reclaimed_gal`. Its Tampa Electric
     claim has no evidence.
 
+## Verified 2026-09-08 (M3 session): day attribution
+- The daily page embeds its own per-day chart (`accessibleDescription`). Summing rows by
+  **usage day = date(To) if To is at/after noon Eastern else date(To) − 1** reproduces it exactly across all
+  three captures (545 rows, 0 mismatches). Reads close ~01:30–03:35 (winter 03:2x) and occasionally 22:00–23:00.
+  This is `timeutil.usage_day`; `DailyRead.usage_date_local` now means this (schema v2 migration recomputes).
+- `Failed` rows: delivered 0, reading 0, **kWh Received sometimes non-zero** (e.g. 23 on 2026-08-13). Exported
+  verbatim; delivered rolls into the following 48 h read, which lands on the next day (portal does the same).
+- Multiple reads can close on one day (2025-09-10: 44 h Historical + 3.8 h Valid) → summed into one bucket.
+
 ## Current state
-- Commits: `408d66c` (M0 probe harness + M1 parser/archive/CLI), `767f754` (M2 HA integration), then the
-  vendoring change on its own branch. Nothing pushed anywhere yet.
-- All green: 157 library tests, 15 HA tests, ruff, mypy --strict (both), vendor check, wheel excludes component.
-- Manifest placeholders to fix: `codeowners` (`@reptar`), `documentation`/`issue_tracker` (currently a GitHub
-  guess) → point at the Forgejo repo.
+- Commits: `408d66c` (M0+M1), `767f754` (M2), `fad1d61` (vendoring), then M3 on branch `m3-backfill`
+  (fast-forwardable onto `main`; `main`/`m1`/`m2` branches are already on Forgejo, the later ones are not).
+- M3 built: `series.py` plans over *points* (hour or midnight day bucket; `build_points` eligibility = zero
+  intervals AND whole day before `oldest_recoverable_utc`), `merge_stray_rows` rewrites recorder starts a
+  full/reimport no longer produces (plan §5 flip rule), `Archive.daily_buckets/daily_change_days_since/
+  range_fetch_covered_from_utc`, `Pipeline.backfill_daily` + `run_cycle(backfill_days=)` (kind `daily_range`,
+  records the *requested* window so it is one-shot per span), CLI `backfill --days`, HA option
+  `backfill_days` (default 730, 0 = off), diagnostics `hour_points/day_points`.
+- All green: 178 library tests, 18 HA tests, ruff, mypy --strict (both), vendor check.
+- Manifest now points at `https://github.com/ther3zz/MyUsage-Archive`.
 
 ## Next steps, in order
 1. User: push to Forgejo; fix manifest placeholders; take a full HA backup; copy
@@ -118,9 +135,9 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
    and `…_energy_received` (return to grid) in the Energy dashboard.
 2. User: run `myusage-archive probe --recheck` once (session-lifetime probe); switch the Nov 3–9 2026 cron entry to
    `probe --grids-only`; run `myusage-archive fetch` daily via cron if not using HA for a while.
-3. Agent: M3 — daily-history backfill (~15 months) as midnight-bucket statistics for days before interval
-   coverage (plan §5 flip rules), repair tooling, then M4 (Nov 2026 DST fold validation, non-solar/multi-meter
-   fixtures, optional water).
+3. Agent: M4 — Nov 2026 DST fold validation, non-solar/multi-meter fixtures, optional water. Possible M3
+   follow-ups: a `plan` CLI dry-run needs a recorder so it stays HA-only; the `gaps` report could list
+   permanent days that have neither intervals nor a daily row (holes the backfill cannot fill).
 
 ## Open unknowns
 P3 non-solar daily layout (10-col single kWh — unverified fixture), P6 DST rendering (Nov 2026),

@@ -40,9 +40,18 @@ from homeassistant.helpers.recorder import get_instance
 from homeassistant.util.unit_conversion import EnergyConverter
 
 from .const import DOMAIN, STAT_DELIVERED, STAT_RECEIVED
-from .vendor.myusage_archive.archive import Archive, HourlyBucket
-from .vendor.myusage_archive.series import Anchor, Field, Plan, plan_series
-from .vendor.myusage_archive.timeutil import EASTERN
+from .vendor.myusage_archive.archive import Archive, DailyBucket, HourlyBucket
+from .vendor.myusage_archive.series import (
+    HOUR,
+    Anchor,
+    Field,
+    Plan,
+    SeriesPoint,
+    build_points,
+    merge_stray_rows,
+    plan_series,
+)
+from .vendor.myusage_archive.timeutil import EASTERN, local_midnight_utc
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,6 +110,8 @@ class SeriesReport:
 class ExportReport:
     series: list[SeriesReport] = field(default_factory=list)
     halted: list[SeriesReport] = field(default_factory=list)
+    hour_points: int = 0
+    day_points: int = 0  # days represented by a midnight bucket (backfill)
 
     @property
     def imported_rows(self) -> int:
@@ -130,25 +141,58 @@ class StatisticsExporter:
             return None
         return Anchor(start_utc=int(rows[0]["start"]), sum=float(total))
 
-    async def _sum_before(self, stat_id: str, before_utc: int) -> Decimal:
-        """Recorder sum on the last row strictly before ``before_utc`` (0 if none)."""
-        start = dt.datetime.fromtimestamp(0, dt.UTC)
-        end = dt.datetime.fromtimestamp(before_utc, dt.UTC)
+    async def _rows_between(self, stat_id: str, start_utc: int, end_utc: int) -> list[Any]:
+        """Recorder rows with ``start_utc <= start < end_utc`` (recorder executor)."""
         result = await get_instance(self._hass).async_add_executor_job(
             statistics_during_period,
             self._hass,
-            start,
-            end,
+            dt.datetime.fromtimestamp(start_utc, dt.UTC),
+            dt.datetime.fromtimestamp(end_utc, dt.UTC),
             {stat_id},
             "hour",
             None,
             {"sum"},
         )
-        for row in reversed(result.get(stat_id) or []):
+        return list(result.get(stat_id) or [])
+
+    async def _sum_before(self, stat_id: str, before_utc: int) -> Decimal:
+        """Recorder sum on the last row strictly before ``before_utc`` (0 if none)."""
+        for row in reversed(await self._rows_between(stat_id, 0, before_utc)):
             total = row.get("sum")
             if total is not None:
                 return Decimal(repr(float(total)))
         return Decimal(0)
+
+    async def _existing_starts(self, stat_id: str, first_utc: int, last_utc: int) -> list[int]:
+        """Starts the recorder already holds in the closed range [first, last]."""
+        rows = await self._rows_between(stat_id, first_utc, last_utc + 1)
+        return [int(r["start"]) for r in rows]
+
+    # -- change detection
+
+    async def _changed_from(
+        self, meter: str, since_utc: int, points: list[SeriesPoint]
+    ) -> int | None:
+        """Earliest series start touched by any archive write after ``since_utc``.
+
+        Interval writes map to their hour; daily writes count only for days
+        this series actually represents as a midnight bucket (a fresh daily
+        row for a day inside the interval window is not a change to anything
+        exported).
+        """
+        candidates: list[int] = []
+        interval = await self._run(
+            functools.partial(self._archive.earliest_interval_change_since, meter, since_utc)
+        )
+        if interval is not None:
+            candidates.append(interval - interval % HOUR)
+        bucketed = {p.day for p in points if p.kind == "day"}
+        if bucketed:
+            days = await self._run(
+                functools.partial(self._archive.daily_change_days_since, meter, since_utc)
+            )
+            candidates.extend(local_midnight_utc(d) for d in days if d in bucketed)
+        return min(candidates) if candidates else None
 
     # -- export
 
@@ -156,10 +200,14 @@ class StatisticsExporter:
         self, meter: str, *, has_received: bool, today_eastern: dt.date
     ) -> ExportReport:
         report = ExportReport()
-        buckets: list[HourlyBucket] = await self._run(lambda: self._archive.hourly_series(meter))
-        if not buckets:
-            return report
+        hourly: list[HourlyBucket] = await self._run(lambda: self._archive.hourly_series(meter))
+        daily: list[DailyBucket] = await self._run(lambda: self._archive.daily_buckets(meter))
         oldest = oldest_recoverable_utc(today_eastern)
+        points = build_points(hourly, daily, oldest_recoverable_utc=oldest)
+        if not points:
+            return report
+        report.hour_points = sum(p.kind == "hour" for p in points)
+        report.day_points = sum(p.kind == "day" for p in points)
         kinds: list[tuple[str, Field]] = [(STAT_DELIVERED, "delivered")]
         if has_received:
             kinds.append((STAT_RECEIVED, "received"))
@@ -169,19 +217,15 @@ class StatisticsExporter:
             state = await self._run(functools.partial(self._archive.exporter_state, stat_id))
             changed_from = None
             if state is not None:
-                changed_from = await self._run(
-                    functools.partial(
-                        self._archive.earliest_interval_change_since, meter, state.exported_at_utc
-                    )
-                )
+                changed_from = await self._changed_from(meter, state.exported_at_utc, points)
             anchor = await self._anchor(stat_id)
-            first_utc = min(b.start_utc for b in buckets)
+            first_utc = points[0].start_utc
             pre_sum = Decimal(0)
             if anchor is not None and anchor.start_utc >= first_utc:
                 pre_sum = await self._sum_before(stat_id, first_utc)
 
             plan = plan_series(
-                buckets,
+                points,
                 field_name,
                 anchor=anchor,
                 pre_series_sum=pre_sum,
@@ -217,9 +261,24 @@ class StatisticsExporter:
                 report.series.append(report_entry)
                 continue
 
+            if plan.action in ("full", "reimport"):
+                # Plan §5 "flip" rule: rewrite every start the recorder holds
+                # in the rewritten span, so a midnight bucket that became
+                # hours (or an hour that became a hole) cannot strand an old
+                # sum in the middle of the series.
+                first, last = plan.rows[0], plan.rows[-1]
+                existing = await self._existing_starts(stat_id, first.start_utc, last.start_utc)
+                base = first.sum - first.state
+                rows = merge_stray_rows(plan.rows, existing, base)
+                if len(rows) != len(plan.rows):
+                    _LOGGER.warning(
+                        "%s: zeroing %d recorder row(s) the archive no longer represents",
+                        stat_id, len(rows) - len(plan.rows),
+                    )
+                    plan = Plan(plan.action, plan.reason, rows)
+
             self._import(meter, kind, plan)
-            last = plan.last
-            assert last is not None
+            last = plan.rows[-1]
             await self._run(
                 functools.partial(
                     self._archive.set_exporter_state,

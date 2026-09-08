@@ -52,6 +52,7 @@ class FakeSession:
     def __init__(self) -> None:
         self.routes: list[tuple[str, str, FakeResponse]] = []
         self.requests: list[tuple[str, str, dict[str, str] | None]] = []
+        self.posted: list[dict[str, str]] = []
 
     def add(self, method: str, url_prefix: str, response: FakeResponse) -> None:
         self.routes.append((method, url_prefix, response))
@@ -68,6 +69,7 @@ class FakeSession:
 
     def post(self, url: str, **kwargs: Any) -> FakeResponse:
         self.requests.append(("POST", url, kwargs.get("headers")))
+        self.posted.append(dict(kwargs.get("data") or {}))
         return self._route("POST", url)
 
     async def close(self) -> None:

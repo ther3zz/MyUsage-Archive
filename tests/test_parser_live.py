@@ -183,3 +183,27 @@ def test_interval_sums_reconcile_with_daily_read_windows() -> None:
         assert abs(total - read.kwh_delivered) < 1, read.from_ts
         compared += 1
     assert compared >= 5
+
+
+def test_usage_day_attribution_matches_the_portals_own_chart() -> None:
+    """The daily page embeds a per-day chart. Summing our rows by usage day
+    must reproduce it exactly for every day in every capture — including
+    Failed placeholders, 48-hour catch-up reads and the late-evening reads.
+    (Verified rule, 2026-09-08: three captures, 545 rows, zero mismatches.)"""
+    import re
+
+    checked = 0
+    for name in ("02-history-default.html", "06-post-electric-60d.html",
+                 "05-post-electric-25mo.html"):
+        html = (FIXTURES / name).read_text(encoding="utf-8")
+        chart_text = re.search(r'accessibleDescription = "(.*?)";', html).group(1)  # type: ignore[union-attr]
+        chart: dict[dt.date, int] = defaultdict(int)
+        for kwh, day in re.findall(r"usage amount is kWh(\d+) on (\d\d/\d\d/\d{4})", chart_text):
+            chart[dt.datetime.strptime(day, "%m/%d/%Y").date()] += int(kwh)
+        ours: dict[dt.date, Decimal] = defaultdict(Decimal)
+        for read in parse_daily_history(html).reads:
+            assert read.kwh_delivered is not None
+            ours[read.usage_date_local] += read.kwh_delivered
+        assert {d: int(v) for d, v in ours.items()} == dict(chart), name
+        checked += len(chart)
+    assert checked == 457 + 59 + 28
