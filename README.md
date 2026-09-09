@@ -224,6 +224,45 @@ Everything under `probes/` is git-ignored: the first live bundle leaked an
 account number and an internal meter id before the anonymizer was hardened.
 Promote reviewed fixtures into `tests/fixtures/` deliberately.
 
+## Credentials and data at rest (security model)
+
+There is no API token for MyUsage, so the integration has to keep a
+password that works. Where things live, and what protects them:
+
+- **The MyUsage password** is stored in Home Assistant's config entry, in
+  `/config/.storage/core.config_entries`, unencrypted. That is how every
+  Home Assistant integration that needs a password stores it (Opower, the
+  utility integrations, cloud services); Home Assistant offers no secret
+  store for integrations, and its maintainers' stated position is that
+  encrypting that file would be theatre, because anything that can run code
+  inside Home Assistant can read the key too. The realistic protections are
+  around the file: `/config` is root-only on Home Assistant OS, backups have
+  been AES-encrypted by default since 2025.1 (keep the emergency kit), and
+  Home Assistant itself should not be exposed to the internet without
+  authentication in front of it.
+- **Use a dedicated MyUsage login with a unique password.** The README's
+  install steps already suggest registering a MyUsage login rather than
+  going through the OUC portal button; give it a password used nowhere else,
+  so the blast radius of a leaked config file is one utility dashboard.
+- **The archive database** (`/config/myusage_archive/<entry>.db`) holds your
+  usage history, meter number, and the last few raw portal pages kept for
+  forensics. It never holds the password. It is created owner-only (0600),
+  and raw pages are scrubbed before storage: SSO token, session cookies and
+  CSRF form tokens are replaced, table data is untouched so `reparse` still
+  works.
+- **Nothing sensitive is logged.** URLs, cookies, and exception messages go
+  through `redact.py`; response bodies are logged only at a level below
+  DEBUG. The diagnostics download redacts the email, password, title and
+  unique id. The config flow never persists a failed attempt.
+- **The command-line tool** takes the password from a prompt or
+  `MYUSAGE_PASSWORD`; `--password` works but warns, because it lands in
+  shell history and `ps`. Keep any env file at mode 0600.
+- **Sessions are short-lived and never persisted.** Each cycle logs in
+  fresh; cookies live in memory for the duration of one cycle.
+
+What this does not defend against: a compromised Home Assistant instance,
+or anyone with root on the box. Nothing an integration can do changes that.
+
 ## Design ground rules
 
 - **Fail loudly.** Unknown layouts raise typed errors; no value is ever

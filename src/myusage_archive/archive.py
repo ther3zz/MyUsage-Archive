@@ -26,9 +26,11 @@ rules (see the implementation plan, §1.7 and §3):
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime as dt
 import json
 import logging
+import os
 import sqlite3
 import zlib
 
@@ -43,6 +45,7 @@ from typing import Any
 
 from .exceptions import ArchiveVersionError, BlockingCallError
 from .models import DailyRead, IntervalReading, LayoutSignature, Resolution
+from .redact import scrub_page
 from .timeutil import EASTERN, day_slots, local_midnight_utc, localize, usage_day
 
 _LOGGER = logging.getLogger(__name__)
@@ -435,6 +438,10 @@ class Archive:
         if version == SCHEMA_VERSION:
             return
         if version == 0:
+            # Owner-only: the archive holds the account's usage history and
+            # the raw portal pages. SQLite gives -wal/-shm the same mode.
+            with contextlib.suppress(OSError):
+                os.chmod(self.path, 0o600)
             # WAL is persistent; set it once at creation, outside any transaction.
             conn.execute("PRAGMA journal_mode=WAL")
             # executescript() commits any pending transaction before it runs, so
@@ -531,7 +538,7 @@ class Archive:
             if raw_html is not None and (not ok or self.keep_ok_raw_pages > 0):
                 conn.execute(
                     "INSERT INTO raw_pages (fetched_at_utc, kind, ok, content) VALUES (?, ?, ?, ?)",
-                    (now, kind, int(ok), zlib.compress(raw_html.encode("utf-8"))),
+                    (now, kind, int(ok), zlib.compress(scrub_page(raw_html).encode("utf-8"))),
                 )
                 raw_page_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
             conn.execute(

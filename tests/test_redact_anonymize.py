@@ -96,3 +96,40 @@ def test_leak_scanner_flags_a_surviving_holder_name() -> None:
     page = '<div class="details"><b>Doe,Jane</b><br /><br /> Account: ACCT001 </div>'
     kinds = {f["kind"] for f in scan_for_leaks({"p.html": page})}
     assert "holder_name" in kinds
+
+
+def test_scrub_page_removes_form_tokens_but_not_data() -> None:
+    from myusage_archive.redact import scrub_page
+
+    html = (
+        '<input type="hidden" name="cf_CSRFToken" value="66ACC9BF16DF113D3CC84A6B62D57ACF54817D41">'
+        "<input name='cf_CSRFToken_web' value='ws8'/>"
+        '<a href="data.cfm?LoginPassword=12345678901234567890123456789012'
+        '&appFlow=2026090715343480">x</a>'
+        '<td class="griddata" data-raw-value="59">59</td>'
+    )
+    out = scrub_page(html)
+    assert "66ACC9BF" not in out and "ws8" not in out
+    assert "12345678901234567890123456789012" not in out
+    assert 'name="cf_CSRFToken" value="REDACTED"' in out
+    assert "appFlow=2026090715343480" in out            # not a secret; needed for forensics
+    assert '<td class="griddata" data-raw-value="59">59</td>' in out
+
+
+def test_live_fixtures_reparse_identically_after_scrub() -> None:
+    from pathlib import Path
+
+    from myusage_archive.parser import parse_daily_history, parse_interval_grid
+    from myusage_archive.redact import scrub_page
+
+    fixtures = Path(__file__).parent / "fixtures" / "live"
+    daily = (fixtures / "06-post-electric-60d.html").read_text(encoding="utf-8")
+    grid = (fixtures / "03-grid15.html").read_text(encoding="utf-8")
+    assert parse_daily_history(scrub_page(daily)).reads == parse_daily_history(daily).reads
+    import datetime as dt
+
+    ref = dt.date(2026, 9, 8)
+    assert (
+        parse_interval_grid(scrub_page(grid), reference_date=ref).readings
+        == parse_interval_grid(grid, reference_date=ref).readings
+    )

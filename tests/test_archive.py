@@ -651,3 +651,33 @@ def test_range_fetch_covered_from_utc_uses_requested_window(tmp_path: Path) -> N
     archive.record_fetch("daily_range", ok=True, window_start_utc=300)
     archive.record_fetch("daily", ok=True, window_start_utc=1)            # other kinds don't count
     assert archive.range_fetch_covered_from_utc("daily_range") == 300
+
+
+# ---------------------------------------------------------------- security
+
+
+def test_archived_raw_pages_are_scrubbed_of_session_tokens(tmp_path: Path) -> None:
+    archive = _archive(tmp_path)
+    html = (FIXTURES / "02-history-default.html").read_text(encoding="utf-8")
+    assert 'name="cf_CSRFToken" value="66ACC9BF' in html  # the capture still has one
+    fid = archive.record_fetch("daily", ok=False, http_status=200, error="x", raw_html=html)
+    page_id = next(p.id for p in archive.raw_pages() if archive.fetch_for_raw_page(p.id) == fid)
+    stored = archive.raw_page_content(page_id)
+    assert stored is not None
+    assert "66ACC9BF16DF113D3CC84A6B62D57ACF54817D41" not in stored
+    assert 'name="cf_CSRFToken" value="REDACTED"' in stored
+    # Still a complete, parseable page.
+    assert len(parse_daily_history(stored).reads) == len(parse_daily_history(html).reads)
+
+
+def test_archive_file_is_owner_only(tmp_path: Path) -> None:
+    import stat
+
+    archive = _archive(tmp_path)
+    archive.meters()
+    mode = stat.S_IMODE((tmp_path / "archive.db").stat().st_mode)
+    assert mode == 0o600, oct(mode)
+    for suffix in ("-wal", "-shm"):
+        side = tmp_path / f"archive.db{suffix}"
+        if side.exists():
+            assert stat.S_IMODE(side.stat().st_mode) == 0o600, suffix

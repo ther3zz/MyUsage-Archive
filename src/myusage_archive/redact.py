@@ -38,6 +38,25 @@ _PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
+# Session-scoped anti-forgery tokens rendered into forms. They expire with
+# the ColdFusion session and reparse never needs them, so a page kept for
+# forensics must not carry them.
+_FORM_TOKEN_RE = re.compile(
+    r"""(name=["'](?:cf_CSRFToken(?:_web)?|xsrf_token)["'][^>]*?value=["'])[^"']*(["'])""",
+    re.IGNORECASE,
+)
+
+
+def scrub_page(html: str, extra_secrets: list[str] | None = None) -> str:
+    """Scrub a captured portal page before it is archived or shared.
+
+    Everything :func:`scrub_text` removes (SSO token, session cookies) plus
+    the CSRF form tokens. Table content is untouched, so a scrubbed page
+    still re-parses identically.
+    """
+    return scrub_text(_FORM_TOKEN_RE.sub(r"\1" + REDACTED + r"\2", html), extra_secrets)
+
+
 def scrub_url(url: str) -> str:
     """Return *url* with sensitive query parameter values replaced."""
     parts = urlsplit(url)
