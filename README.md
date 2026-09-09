@@ -50,6 +50,28 @@ deleted or restored recorder is rebuilt from the archive instead of producing
 negative bars. No solar-production statistic is exported: the portal exposes
 export, not gross generation.
 
+### Fetch schedule
+
+The portal publishes one batch a day, around 10:28 AM Eastern, with a
+two-day lag, so the integration fetches **once a day** and never polls:
+
+- **Daily slot**: 12:15 PM America/New_York by default, plus a random delay
+  of up to 10 minutes. Both are options. The time is Eastern regardless of
+  your Home Assistant time zone, and DST changes do not move it.
+- **Retries**: if the slot finds no new interval rows (late batch) or the
+  fetch fails, it tries again after 60 minutes and then 180 minutes, then
+  waits for the next day's slot.
+- **Startup**: a restart fetches only if the newest successful grid fetch
+  is older than 6 hours (2 minutes after boot in that case), so restart
+  loops cannot hammer the portal.
+- **One cycle is three requests**: login, the daily table, the 15-minute
+  grid. The first cycle after install adds one date-range POST for the
+  backfill.
+
+A missed day is harmless (the grid covers a rolling seven days); after
+48 hours without new data a "stale archive" repair issue is raised, since
+a week of misses loses data for good.
+
 ### Backfill
 
 The 15-minute grid only ever covers the last seven days, but the daily
