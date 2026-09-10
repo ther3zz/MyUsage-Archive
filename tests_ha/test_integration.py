@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.recorder import get_instance
@@ -532,6 +532,28 @@ async def test_backfill_span_reaches_the_pipeline(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     pipeline.return_value.run_cycle.assert_awaited_once_with(meter=None, backfill_days=730)
+
+
+async def test_fetch_cycle_releases_session_with_detach(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """_fetch_cycle builds a throwaway session (fresh cookie jar) and must
+    release it with detach(), never close(): HA wraps close() with a usage
+    warning and it is a no-op mock, so the session would leak."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline") as pipeline:
+        pipeline.return_value.run_cycle = AsyncMock(side_effect=LayoutError("stop here"))
+        fake_session = MagicMock(name="aiohttp.ClientSession")
+        fake_session.close = AsyncMock()
+        fake_session.detach = MagicMock()
+        with patch(
+            "custom_components.myusage_archive.coordinator.async_create_clientsession",
+            return_value=fake_session,
+        ):
+            entry.add_to_hass(hass)
+            await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+    fake_session.detach.assert_called_once()
+    fake_session.close.assert_not_called()
 
 
 # -------------------------------------------------------------- lifecycle

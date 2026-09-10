@@ -64,7 +64,7 @@ async def _validate_login(hass: HomeAssistant, email: str, password: str) -> str
         _LOGGER.exception("unexpected error validating MyUsage login")
         return "unknown"
     finally:
-        await session.close()
+        session.detach()
     return None
 
 

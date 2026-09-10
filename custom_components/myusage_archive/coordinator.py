@@ -283,7 +283,7 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
         except MyUsageError as err:
             raise UpdateFailed(str(err)) from err
         finally:
-            await session.close()
+            session.detach()
 
         self._clear_issue(ISSUE_LAYOUT_ERROR)
         self._clear_issue(ISSUE_UNSUPPORTED_ACCOUNT)
