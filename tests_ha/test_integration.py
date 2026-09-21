@@ -45,7 +45,7 @@ from custom_components.myusage_archive.vendor.myusage_archive.models import (
     Resolution,
 )
 
-from .conftest import METER
+from .conftest import METER, REF
 
 DELIVERED = statistic_id(METER, "energy_delivered")
 RECEIVED = statistic_id(METER, "energy_received")
@@ -365,7 +365,7 @@ async def test_export_halt_issue_clears_when_the_archive_catches_up(
         parse_interval_grid,
     )
 
-    from .conftest import FIXTURES, REF
+    from .conftest import FIXTURES
 
     issue_id = f"{ISSUE_EXPORT_HALTED}_{DELIVERED.replace(':', '_')}_{entry.entry_id}"
     registry = ir.async_get(hass)
@@ -435,8 +435,12 @@ async def test_backup_hooks_lock_and_release(
 
 
 async def test_diagnostic_sensors(
-    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded, freezer
 ) -> None:
+    # Gap counts are relative to "today" (the portal publishes today - 2 and
+    # keeps seven days), so the clock has to stand where the captures were
+    # taken or every day since would read as a permanent hole.
+    freezer.move_to(f"{REF.isoformat()} 16:00:00+00:00")
     with patch("custom_components.myusage_archive.coordinator.Pipeline"):
         await _setup(hass, entry)
     states = {s.entity_id: s for s in hass.states.async_all("sensor")}

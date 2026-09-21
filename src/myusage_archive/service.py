@@ -301,7 +301,11 @@ class Pipeline:
             )
 
         intervals = await self.fetch_intervals(meter=meter)
-        gaps = await self._blocking(lambda: self.archive.gaps(meter))
+        # ``reference_date`` means "treat this as the portal's today"; the gap
+        # report is relative to the same day the grid columns were read against,
+        # or it would call every day since the capture a permanent hole.
+        today = self._reference_date
+        gaps = await self._blocking(lambda: self.archive.gaps(meter, today=today))
         issues = await self._blocking(lambda: self.archive.consistency_report(meter))
         for gap in gaps.incomplete_days:
             level = logging.WARNING if not gap.recoverable else logging.INFO
