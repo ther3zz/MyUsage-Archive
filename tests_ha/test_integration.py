@@ -13,9 +13,13 @@ from homeassistant.components.recorder.statistics import (
     statistics_during_period,
 )
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
@@ -441,6 +445,60 @@ async def test_diagnostic_sensors(
     assert gaps.state == "0"
     newest = next(s for s in states.values() if s.entity_id.endswith("newest_archived_interval"))
     assert newest.state.startswith("2026-09-07T03:45:00")  # 23:45 Eastern on Sep 6, in UTC
+
+
+# ------------------------------------------------------------------ button
+
+
+async def test_fetch_now_button_fetches_without_disturbing_the_schedule(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+) -> None:
+    """The press runs a cycle even though the startup guard just skipped one,
+    and the armed daily timer and retry ladder come out untouched."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline"):
+        await _setup(hass, entry)
+        coordinator = entry.runtime_data
+        assert coordinator.data.fetched_this_refresh is False  # 6-hour startup guard
+        timer_before = coordinator._unsub_timer  # noqa: SLF001
+        assert timer_before is not None
+
+        button = next(iter(hass.states.async_all("button"))).entity_id
+        assert button.endswith("_fetch_now")
+        with patch.object(coordinator, "_fetch_cycle", AsyncMock(return_value=0)) as cycle:
+            await hass.services.async_call(
+                "button", "press", {"entity_id": button}, blocking=True
+            )
+            await async_wait_recording_done(hass)
+
+    cycle.assert_awaited_once()
+    assert coordinator.data.fetched_this_refresh is True
+    # No new rows would normally arm the retry ladder; a manual fetch must not.
+    assert coordinator._unsub_timer is timer_before  # noqa: SLF001
+    assert coordinator._retry_index == 0  # noqa: SLF001
+    assert er.async_get(hass).async_get(button).entity_category is EntityCategory.DIAGNOSTIC
+
+
+async def test_fetch_now_button_reports_a_failed_fetch(
+    recorder_mock, hass: HomeAssistant, entry: MockConfigEntry, seeded
+) -> None:
+    """A failed press raises (a UI toast) instead of only logging, and still
+    leaves the schedule alone."""
+    with patch("custom_components.myusage_archive.coordinator.Pipeline"):
+        await _setup(hass, entry)
+        coordinator = entry.runtime_data
+        timer_before = coordinator._unsub_timer  # noqa: SLF001
+        button = next(iter(hass.states.async_all("button"))).entity_id
+        with patch.object(
+            coordinator, "_fetch_cycle", AsyncMock(side_effect=UpdateFailed("portal down"))
+        ), pytest.raises(HomeAssistantError, match="portal down"):
+            await hass.services.async_call(
+                "button", "press", {"entity_id": button}, blocking=True
+            )
+
+    assert coordinator._unsub_timer is timer_before  # noqa: SLF001
+    assert coordinator._retry_index == 0  # noqa: SLF001
+    # The button stays pressable after a failure.
+    assert hass.states.get(button).state != "unavailable"
 
 
 # ------------------------------------------------------------ config flows

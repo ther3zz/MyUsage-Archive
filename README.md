@@ -67,6 +67,10 @@ two-day lag, so the integration fetches **once a day** and never polls:
 - **One cycle is three requests**: login, the daily table, the 15-minute
   grid. The first cycle after install adds one date-range POST for the
   backfill.
+- **Fetch now**: a button on the device runs one cycle immediately (useful
+  after a re-authentication or a network problem). It deliberately does not
+  touch the schedule: the armed daily slot keeps its time and a manual
+  attempt never starts or resets the retry ladder.
 
 A missed day is harmless (the grid covers a rolling seven days); after
 48 hours without new data a "stale archive" repair issue is raised, since
@@ -149,7 +153,9 @@ Developer tools → Statistics and are rebuilt on the next run.
 ### Diagnostics
 
 Four diagnostic sensors: last successful fetch, newest archived interval,
-permanently missing intervals, recoverable missing intervals. Repair issues
+permanently missing intervals, recoverable missing intervals, plus a
+**Fetch now** button that runs one cycle on demand and reports its own
+failure. Repair issues
 are raised for layout changes, unsupported accounts, a halted export, and a
 stale archive. The diagnostics download includes the archive summary, recent
 fetches, gaps, consistency checks, exporter state and the last export (how

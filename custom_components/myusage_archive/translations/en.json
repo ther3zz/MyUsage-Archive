@@ -46,6 +46,11 @@
     }
   },
   "entity": {
+    "button": {
+      "fetch_now": {
+        "name": "Fetch now"
+      }
+    },
     "sensor": {
       "last_fetch": {
         "name": "Last successful fetch"

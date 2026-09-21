@@ -15,6 +15,7 @@ the retry ladder is short and lives in memory.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import functools
 import logging
@@ -26,9 +27,10 @@ from typing import Any
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -114,6 +116,8 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
         self._backup_lock: BackupLock | None = None
         self._meter: str | None = None
         self._has_received = False
+        self._manual = False
+        self._manual_lock = asyncio.Lock()
         # A statistics-only integration may have no entity listeners; keep
         # the coordinator alive regardless (opower's dummy-listener idiom).
         self.async_add_listener(lambda: None)
@@ -161,6 +165,14 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
     def _schedule_next(self, *, new_rows: int | None, failed: bool) -> None:
         """Short in-memory retry ladder, then the next daily slot."""
         now = dt_util.utcnow()
+        if self._manual:
+            # An out-of-band fetch is not an attempt at today's slot: leave the
+            # armed timer and the retry ladder exactly as the schedule left
+            # them. The one thing worth fixing is a missing timer, which is
+            # what a slot firing *during* a manual fetch would leave behind.
+            if self._unsub_timer is None:
+                self._schedule(self._next_daily_fire(now), "daily slot")
+            return
         if (failed or new_rows == 0) and self._retry_index < len(RETRY_DELAYS_MINUTES):
             delay = RETRY_DELAYS_MINUTES[self._retry_index]
             self._retry_index += 1
@@ -206,8 +218,9 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
         now_utc = int(dt_util.utcnow().timestamp())
         first_run = self.data is None
         fresh = last_ok is not None and now_utc - last_ok < STARTUP_FETCH_MIN_AGE_HOURS * 3600
-        # Startup with a recent archive: do not touch the portal.
-        do_network = not (first_run and fresh)
+        # Startup with a recent archive: do not touch the portal. A pressed
+        # button means "go now", so it overrides the freshness guard.
+        do_network = self._manual or not (first_run and fresh)
 
         new_rows: int | None = None
         try:
@@ -332,6 +345,27 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
             fetched_this_refresh=fetched,
         )
 
+    # -------------------------------------------------------- manual fetch
+
+    async def async_fetch_now(self) -> None:
+        """Run one cycle now, out of band (the "Fetch now" button).
+
+        The schedule is deliberately untouched: a manual fetch is not an
+        attempt at today's slot, so it neither starts nor resets the retry
+        ladder and the armed daily timer keeps its time. Raises so the press
+        reports its own failure in the UI instead of only in the log.
+        """
+        if self._manual_lock.locked():
+            raise HomeAssistantError("A MyUsage fetch is already running")
+        async with self._manual_lock:
+            self._manual = True
+            try:
+                await self.async_refresh()
+            finally:
+                self._manual = False
+        if not self.last_update_success:
+            raise HomeAssistantError(f"MyUsage fetch failed: {self.last_exception}")
+
     # -------------------------------------------------------------- backup
 
     async def async_lock_for_backup(self) -> None:
@@ -345,3 +379,15 @@ class MyUsageCoordinator(DataUpdateCoordinator[MyUsageData]):
 
 
 MyUsageConfigEntry = ConfigEntry[MyUsageCoordinator]
+
+
+def device_info(coordinator: MyUsageCoordinator, entry: MyUsageConfigEntry) -> DeviceInfo:
+    """One service device per config entry, shared by every platform."""
+    meter = coordinator.meter
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=f"MyUsage {meter}" if meter else f"MyUsage {entry.data[CONF_EMAIL]}",
+        manufacturer="Exceleron MyUsage (unofficial archiver)",
+        model="Postpaid electric",
+        entry_type=DeviceEntryType.SERVICE,
+    )

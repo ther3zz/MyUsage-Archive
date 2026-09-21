@@ -18,12 +18,10 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_EMAIL, DOMAIN
-from .coordinator import MyUsageConfigEntry, MyUsageCoordinator, MyUsageData
+from .coordinator import MyUsageConfigEntry, MyUsageCoordinator, MyUsageData, device_info
 
 PARALLEL_UPDATES = 0
 
@@ -85,14 +83,7 @@ class MyUsageSensor(CoordinatorEntity[MyUsageCoordinator], SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        meter = coordinator.meter
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=f"MyUsage {meter}" if meter else f"MyUsage {entry.data[CONF_EMAIL]}",
-            manufacturer="Exceleron MyUsage (unofficial archiver)",
-            model="Postpaid electric",
-            entry_type=DeviceEntryType.SERVICE,
-        )
+        self._attr_device_info = device_info(coordinator, entry)
 
     @property
     def native_value(self) -> dt.datetime | int | None:

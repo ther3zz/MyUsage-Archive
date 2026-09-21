@@ -15,7 +15,7 @@ from .coordinator import MyUsageConfigEntry, MyUsageCoordinator, archive_path
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: MyUsageConfigEntry) -> bool:
