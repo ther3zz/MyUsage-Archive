@@ -274,6 +274,17 @@ class ConsistencyIssue:
     window_to_utc: int | None = None
     expected: Decimal | None = None
     actual: Decimal | None = None
+    register: str | None = None  # 'delivered' | 'received' (window_mismatch only)
+
+
+@dataclass(slots=True)
+class _ReadGroup:
+    """A successful daily read and the ``Failed`` placeholders whose usage it carries."""
+
+    read: DailyRead
+    window_from: dt.datetime
+    window_to: dt.datetime
+    placeholders: list[DailyRead]
 
 
 @dataclass(frozen=True, slots=True)
@@ -1177,9 +1188,15 @@ class Archive:
         """Cross-check intervals against the daily table, and flag estimated days.
 
         * Each daily read window is compared with the sum of intervals inside
-          it. Runs of ``Failed`` (zero-length placeholder) reads are coalesced
-          into the next successful read, because that is where the portal
-          rolls their usage. Mismatches on coalesced windows are informational.
+          it, for kWh Delivered and kWh Received alike. A ``Failed``
+          (zero-length placeholder) read is grouped with the successful read
+          that carries its usage: the catch-up read whose own window contains
+          it, which is how every placeholder in the live history looks (31 of
+          31 over fifteen months), or else the next successful read, whose
+          window then starts at the placeholder. A group is compared with its
+          values summed, because a placeholder can carry the failed day's kWh
+          Received while the catch-up read carries the rest. Mismatches on
+          grouped windows are informational.
         * A day whose intervals are all identical is the portal's documented
           "spread the daily usage evenly" estimation — flagged, never rejected.
         """
@@ -1190,20 +1207,27 @@ class Archive:
         by_start = {r.start_utc: r for r in readings}
         lo, hi = readings[0].start_utc, readings[-1].start_utc + 15 * 60
 
-        # --- daily windows (with Failed-run coalescing)
-        reads = self.daily_reads(meter)
-        pending_failed: list[DailyRead] = []
-        for read in reads:
+        # --- daily windows, each successful read with its Failed placeholders
+        groups: list[_ReadGroup] = []
+        pending: list[DailyRead] = []
+        for read in self.daily_reads(meter):
             if read.is_failed or read.is_zero_length:
-                pending_failed.append(read)
+                host = groups[-1] if groups else None
+                if host is not None and host.read.from_ts < read.from_ts < host.window_to:
+                    host.placeholders.append(read)  # inside the catch-up read's window
+                else:
+                    pending.append(read)  # its usage rolls into the next read
                 continue
             if read.to_ts is None or read.kwh_delivered is None:
-                pending_failed = []
+                pending = []
                 continue
-            window_from = pending_failed[0].from_ts if pending_failed else read.from_ts
-            coalesced = bool(pending_failed)
-            pending_failed = []
-            w_from, w_to = int(window_from.timestamp()), int(read.to_ts.timestamp())
+            window_from = pending[0].from_ts if pending else read.from_ts
+            groups.append(_ReadGroup(read, window_from, read.to_ts, pending))
+            pending = []
+
+        for group in groups:
+            w_from = int(group.window_from.timestamp())
+            w_to = int(group.window_to.timestamp())
             if w_from < lo or w_to > hi:
                 continue  # window not fully inside interval coverage
             expected_slots = (w_to - w_from) // (15 * 60)
@@ -1219,23 +1243,31 @@ class Archive:
                     )
                 )
                 continue
-            actual = sum(
-                (r.kwh_delivered or Decimal(0) for r in covered if w_from <= r.start_utc < w_to),
-                Decimal(0),
-            )
-            expected = read.kwh_delivered
-            if abs(actual - expected) > tolerance_kwh:
+            inside = [r for r in covered if w_from <= r.start_utc < w_to]
+            rows = [group.read, *group.placeholders]
+            failed = len(group.placeholders)
+            note = ""
+            if failed:
+                note = f" (coalesced with {failed} failed read{'s' if failed > 1 else ''})"
+            for register, daily, interval in (
+                ("delivered", [d.kwh_delivered for d in rows], [r.kwh_delivered for r in inside]),
+                ("received", [d.kwh_received for d in rows], [r.kwh_received for r in inside]),
+            ):
+                present = [v for v in daily if v is not None]
+                if not present:
+                    continue  # no such column (non-solar layout)
+                expected = sum(present, Decimal(0))
+                actual = sum((v for v in interval if v is not None), Decimal(0))
+                if abs(actual - expected) <= tolerance_kwh:
+                    continue
                 issues.append(
                     ConsistencyIssue(
                         kind="window_mismatch",
-                        severity="info" if coalesced else "warning",
+                        severity="info" if failed else "warning",
                         meter=meter,
-                        detail=(
-                            f"daily kWh {expected} vs interval sum {actual}"
-                            + (" (coalesced across failed reads)" if coalesced else "")
-                        ),
+                        detail=f"daily kWh {register} {expected} vs interval sum {actual}{note}",
                         window_from_utc=w_from, window_to_utc=w_to,
-                        expected=expected, actual=actual,
+                        expected=expected, actual=actual, register=register,
                     )
                 )
 

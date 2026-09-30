@@ -39,10 +39,16 @@ Eastern wall-clock time you choose, archives to
 with a backup hook that keeps the file consistent), and exports two external
 long-term statistics per meter:
 
-| Statistic | Energy dashboard slot |
-|-----------|-----------------------|
-| `myusage_archive:<meter>_energy_delivered` | Grid consumption |
-| `myusage_archive:<meter>_energy_received` | Return to grid |
+| Statistic | Name in the picker | Portal column | Energy dashboard slot |
+|-----------|--------------------|---------------|-----------------------|
+| `myusage_archive:<meter>_energy_delivered` | MyUsage `<meter>` grid import | kWh Delivered | Grid consumption |
+| `myusage_archive:<meter>_energy_received` | MyUsage `<meter>` grid export | kWh Received | Return to grid |
+
+The portal names the registers from the utility's side: *received* is what
+OUC received from you, i.e. export. Earlier versions named the statistics
+`… delivered` and `… received`; only the names changed, so an existing
+Energy dashboard configuration keeps working and the new names appear after
+the next cycle that imports new hours.
 
 The sums are an exact decimal fold over the archive, so re-runs are no-ops,
 portal corrections re-import contiguously from the changed hour, and a
@@ -191,7 +197,7 @@ export MYUSAGE_EMAIL="you@example.com"
 .venv/bin/myusage-archive backfill       # once: ~15 months of daily history (range POST)
 .venv/bin/myusage-archive status         # row counts, meter, recent fetches, integrity
 .venv/bin/myusage-archive gaps           # per-day completeness; recoverable vs PERMANENT
-.venv/bin/myusage-archive verify         # intervals vs daily table; estimated-day flags
+.venv/bin/myusage-archive verify         # intervals vs daily table, both registers; estimated-day flags
 .venv/bin/myusage-archive export-csv --out readings.csv
 ```
 
@@ -229,8 +235,12 @@ which intervals are still fetchable and which are gone.
 - Interval row labels are interval **starts**.
 - The daily table's `Type` column is an open vocabulary: `Valid`,
   `Historical`, `Failed` all occur. `Failed` rows are zero-length placeholders
-  whose delivered usage rolls into the next successful read; some of them
-  still carry a non-zero `kWh Received`, so no field is assumed zero.
+  that sit inside the window of the multi-day catch-up read posted after
+  them (31 of 31 in fifteen months of history). The catch-up read carries the
+  missed delivered usage; 9 of the 31 placeholders carry the failed day's
+  `kWh Received` themselves, so no field is assumed zero and `verify`
+  compares each catch-up read together with its placeholders. A failed
+  daily read left the 15-minute grid intact (observed 2026-09-24).
 - The daily page's own chart attributes each read window to the date of its
   *To* timestamp (previous date when the read closed before noon). Reads
   close at ~01:30–03:35 normally and at 22:00–23:00 occasionally; the daily

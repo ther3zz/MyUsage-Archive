@@ -79,7 +79,11 @@ def statistic_id(meter: str, kind: str) -> str:
 
 
 def build_metadata(meter: str, kind: str) -> StatisticMetaData:
-    label = "delivered" if kind == STAT_DELIVERED else "received"
+    # Names follow the Energy dashboard's slots: the portal's utility-side
+    # "received" reads as consumption to a homeowner. The ids keep the portal
+    # terms, because renaming an id orphans its history and dashboard config;
+    # the recorder picks up a changed name on the next import.
+    label = "grid import" if kind == STAT_DELIVERED else "grid export"
     return StatisticMetaData(
         mean_type=StatisticMeanType.NONE,
         has_sum=True,
