@@ -18,8 +18,8 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
     `custom_components/myusage_archive/vendor/myusage_archive/` by `scripts/vendor.py`
     (run it after any `src/` change; CI runs `--check`). The component imports the vendored copy
     (`from .vendor.myusage_archive...`), never the top-level package.
-  - `tests/` (library, py3.12 venv `.venv`, 157 tests) and `tests_ha/` (HA integration, py3.14 venv
-    `.venv-ha` with Home Assistant 2026.9.1, 15 tests against a real in-memory recorder).
+  - `tests/` (library, py3.12 venv `.venv`, 187 tests) and `tests_ha/` (HA integration, py3.14 venv
+    `.venv-ha` with Home Assistant 2026.9.1, 24 tests against a real in-memory recorder).
   - `tests/fixtures/live/` — anonymized real captures (solar OUC account, 2026-09-08); `probes/` is
     git-ignored and holds raw captures with the user's real data.
   - Plan (approved, detailed, has all verified facts): `/home/reptar/.claude/plans/agent-brief-myusage-archive-calm-gem.md`.
@@ -53,8 +53,8 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
 - Daily table: `Meter|High|Low|Posted|From|To|kWh Delivered|kWh Received|kW|Reading|Type`; read windows are
   ~01:30→~01:30 (not midnight; 02:3x/03:2x in older/winter rows); also ends with `Total`/`Average` rows. `Type` is an open vocabulary:
   `Valid`, `Historical`, `Failed` (+blank). **`Failed` rows are zero-length placeholders** (From==To, kWh 0,
-  Reading 0) whose usage rolls into the next successful read. Interval sums reconcile with daily windows within
-  daily rounding (<1 kWh).
+  Reading 0) inside the window of the catch-up read posted after them (see 2026-09-30 below). Interval sums
+  reconcile with daily windows within daily rounding (<1 kWh), for both registers.
 - Daily history range POST works for Electric (`selectedTimePeriod=4`, FromDate/ToDate MM/DD/YYYY, ServiceType,
   action=Load, the literal `SubmitButtonValidateTimePeriod`, CSRF pair `cf_CSRFToken`/`cf_CSRFToken_web` scraped
   as a whole form). ~15 months available (from 2025-06-05). Default GET = 30 days.
@@ -116,6 +116,22 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
   verbatim; delivered rolls into the following 48 h read, which lands on the next day (portal does the same).
 - Multiple reads can close on one day (2025-09-10: 44 h Historical + 3.8 h Valid) → summed into one bucket.
 
+## Verified 2026-09-30: Failed reads and kWh Received
+- All 31 `Failed` placeholders in the 15-month capture sit strictly **inside** the window of the multi-day
+  catch-up read posted after them (catch-up 08/13 01:32 → 08/15 01:42 with 135 kWh delivered; placeholder
+  08/14 01:32). 22 carry 0 received, and their catch-up read has both days of both registers. The other 9
+  carry the failed day's received themselves (08/13: 23 on the placeholder, 29 on the catch-up read).
+- `consistency_report` assumed the opposite shape and reported the ordinary read *after* each placeholder as a
+  false "coalesced" mismatch. It now groups a placeholder with the read whose window contains it (else the next
+  read, as before), sums the group, and reconciles kWh Received too (`ConsistencyIssue.register`).
+- P9, one observation: the 2026-09-24 daily read was `Failed` (0 delivered, 30 received), yet the 15-minute grid
+  had the complete day. The user matched the portal's 15-minute totals against HA (59.82 / 31.22).
+- Statistic display names are now "MyUsage <meter> grid import" / "grid export". The ids are unchanged; the
+  recorder updates a changed name on the next import (`StatisticsMetaManager._update_metadata`).
+- The Energy dashboard splits flows per statistics bucket (frontend `computeConsumptionSingle`; hour buckets for
+  a range of 2 days or less). So a backfilled midnight bucket shows no solar→grid in the single-day view, and
+  the newest ~2 days (portal lag) look fully self-consumed until the data lands.
+
 ## Current state
 - Everything is on `main` at Forgejo (`408d66c` M0+M1, `767f754` M2, `fad1d61` vendoring, `3dd13db` M3, then
   the install script). Milestone branches were deleted after fast-forward merges. **Installed on the
@@ -127,14 +143,16 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
   range_fetch_covered_from_utc`, `Pipeline.backfill_daily` + `run_cycle(backfill_days=)` (kind `daily_range`,
   records the *requested* window so it is one-shot per span), CLI `backfill --days`, HA option
   `backfill_days` (default 730, 0 = off), diagnostics `hour_points/day_points`.
-- All green: 178 library tests, 18 HA tests, ruff, mypy --strict (both), vendor check.
+- 2026-09-30: branch `fix/failed-reads-and-stat-names` (statistic rename + consistency fix), for the user to
+  merge and push.
+- All green: 187 library tests, 24 HA tests, ruff, mypy --strict (both), vendor check.
 - Manifest points at the public GitHub mirror `https://github.com/ther3zz/MyUsage-Archive` (Forgejo is the private origin and push-mirrors
   to it); the private hostname must never appear in the tree or history.
 
 ## Next steps, in order
-1. User: confirm the first cycle ran (log lines for backfill + export), wire
-   `myusage_archive:<meter>_energy_delivered` (grid consumption) and `…_energy_received` (return to grid) in
-   the Energy dashboard; updates = re-run the install one-liner in the README + restart.
+1. Done 2026-09-30: both statistics wired in the Energy dashboard (`…_energy_delivered` → grid consumption,
+   `…_energy_received` → return to grid). Updates = re-run the install one-liner in the README (or HACS) +
+   restart.
 2. User: run `myusage-archive probe --recheck` once (session-lifetime probe); switch the Nov 3–9 2026 cron entry to
    `probe --grids-only`; run `myusage-archive fetch` daily via cron if not using HA for a while.
 3. Agent: M4 — Nov 2026 DST fold validation, non-solar/multi-meter fixtures, optional water. Possible M3
@@ -143,7 +161,8 @@ fetched is gone forever. Correctness over breadth; fail loudly; never guess.
 
 ## Open unknowns
 P3 non-solar daily layout (10-col single kWh — unverified fixture), P6 DST rendering (Nov 2026),
-P9 how `Failed` reads look inside the interval grids, session/appFlow lifetime.
+P9 how `Failed` reads look inside the interval grids (one observation says unaffected, see 2026-09-30),
+session/appFlow lifetime.
 
 ## Hard rules
 Never take the user's credentials; never commit `probes/`, `*.db`, `.env*`, `*.cookies`; never touch ouc.com;

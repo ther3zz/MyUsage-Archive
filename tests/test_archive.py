@@ -73,8 +73,10 @@ def _reading(
     )
 
 
-def _full_day(day: dt.date, delivered: str = "0.250") -> list[IntervalReading]:
-    return [_reading(day, m, delivered) for m in range(0, 1440, 15)]
+def _full_day(
+    day: dt.date, delivered: str = "0.250", received: str = "0"
+) -> list[IntervalReading]:
+    return [_reading(day, m, delivered, received) for m in range(0, 1440, 15)]
 
 
 # ------------------------------------------------------------ connection rules
@@ -373,12 +375,12 @@ def test_consistency_detects_window_mismatch(tmp_path: Path) -> None:
 
 
 def _daily(day: dt.date, hour: int, minute: int, to: tuple[dt.date, int, int] | None,
-           kwh: str, read_type: str = "Valid") -> DailyRead:
+           kwh: str, read_type: str = "Valid", received: str = "0") -> DailyRead:
     from_ts = localize(day, hour * 60 + minute)
     to_ts = None if to is None else localize(to[0], to[1] * 60 + to[2])
     return DailyRead(
         meter=METER, from_ts=from_ts, to_ts=to_ts, posted_ts=None, read_type=read_type,
-        kwh_delivered=Decimal(kwh), kwh_received=Decimal(0),
+        kwh_delivered=Decimal(kwh), kwh_received=Decimal(received),
         meter_reading=Decimal(0) if read_type == "Failed" else Decimal(100),
     )
 
@@ -424,6 +426,60 @@ def test_failed_window_mismatch_is_informational(tmp_path: Path) -> None:
     assert len(issues) == 1
     assert issues[0].severity == "info"
     assert "coalesced" in issues[0].detail
+
+
+def _four_days_with_export(archive: Archive) -> tuple[dt.date, ...]:
+    """Sep 1-4, 48 kWh delivered and 24 kWh received per day."""
+    days = tuple(dt.date(2026, 9, n) for n in (1, 2, 3, 4))
+    fid = archive.record_fetch("grid15", ok=True)
+    intervals = [r for day in days for r in _full_day(day, "0.500", "0.250")]
+    archive.store_intervals(intervals, meter=METER, fetch_id=fid)
+    return days
+
+
+def _live_failed_shape(
+    d1: dt.date, d2: dt.date, d3: dt.date, d4: dt.date, *,
+    placeholder_received: str = "24", next_received: str = "24",
+) -> list[DailyRead]:
+    """Every placeholder in the live history looks like this (08/13-14/2026):
+    the catch-up read posted after the failure spans the failed day on its
+    own, and the zero-length placeholder sits inside that window carrying the
+    failed day's kWh Received; the catch-up read carries the rest."""
+    return [
+        _daily(d1, 1, 30, (d3, 1, 30), "96", received="24"),
+        _daily(d2, 1, 30, (d2, 1, 30), "0", read_type="Failed", received=placeholder_received),
+        _daily(d3, 1, 30, (d4, 1, 30), "48", received=next_received),
+    ]
+
+
+def test_failed_read_inside_its_catch_up_read_reconciles_both_registers(
+    tmp_path: Path,
+) -> None:
+    """Pairing the placeholder with the read that contains it reconciles
+    delivered and received, and the ordinary read after it keeps its own
+    window (it used to be stretched back over the failed day)."""
+    archive = _archive(tmp_path)
+    d1, d2, d3, d4 = _four_days_with_export(archive)
+    fid = archive.record_fetch("daily", ok=True)
+    archive.store_daily(_live_failed_shape(d1, d2, d3, d4), fetch_id=fid)
+    issues = archive.consistency_report(METER)
+    assert [i for i in issues if i.kind == "window_mismatch"] == []
+
+
+def test_received_mismatch_is_reported_per_register(tmp_path: Path) -> None:
+    archive = _archive(tmp_path)
+    d1, d2, d3, d4 = _four_days_with_export(archive)
+    reads = _live_failed_shape(
+        d1, d2, d3, d4, placeholder_received="10", next_received="30"  # both wrong
+    )
+    fid = archive.record_fetch("daily", ok=True)
+    archive.store_daily(reads, fetch_id=fid)
+    issues = [i for i in archive.consistency_report(METER) if i.kind == "window_mismatch"]
+    assert [(i.register, i.severity, i.expected, i.actual) for i in issues] == [
+        ("received", "info", Decimal(34), Decimal(48)),  # catch-up + placeholder
+        ("received", "warning", Decimal(30), Decimal(24)),
+    ]
+    assert "coalesced with 1 failed read)" in issues[0].detail
 
 
 def test_estimated_day_is_flagged_not_rejected(tmp_path: Path) -> None:
