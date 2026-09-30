@@ -39,10 +39,16 @@ Eastern wall-clock time you choose, archives to
 with a backup hook that keeps the file consistent), and exports two external
 long-term statistics per meter:
 
-| Statistic | Energy dashboard slot |
-|-----------|-----------------------|
-| `myusage_archive:<meter>_energy_delivered` | Grid consumption |
-| `myusage_archive:<meter>_energy_received` | Return to grid |
+| Statistic | Name in the picker | Portal column | Energy dashboard slot |
+|-----------|--------------------|---------------|-----------------------|
+| `myusage_archive:<meter>_energy_delivered` | MyUsage `<meter>` grid import | kWh Delivered | Grid consumption |
+| `myusage_archive:<meter>_energy_received` | MyUsage `<meter>` grid export | kWh Received | Return to grid |
+
+The portal names the registers from the utility's side: *received* is what
+OUC received from you, i.e. export. Earlier versions named the statistics
+`… delivered` and `… received`; only the names changed, so an existing
+Energy dashboard configuration keeps working and the new names appear after
+the next cycle that imports new hours.
 
 The sums are an exact decimal fold over the archive, so re-runs are no-ops,
 portal corrections re-import contiguously from the changed hour, and a

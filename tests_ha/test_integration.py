@@ -10,6 +10,7 @@ import pytest
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import (
     get_last_statistics,
+    get_metadata,
     statistics_during_period,
 )
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
@@ -110,6 +111,12 @@ async def test_setup_exports_both_series_from_a_seeded_archive(
     sums = [r["sum"] for r in delivered]
     assert sums == sorted(sums)  # monotonic
     assert all(r["state"] >= 0 for r in delivered)
+    # The Energy dashboard picker shows these names; the ids stay portal-side.
+    meta = await get_instance(hass).async_add_executor_job(
+        lambda: get_metadata(hass, statistic_ids={DELIVERED, RECEIVED})
+    )
+    assert meta[DELIVERED][1]["name"] == f"MyUsage {METER} grid import"
+    assert meta[RECEIVED][1]["name"] == f"MyUsage {METER} grid export"
 
     data = entry.runtime_data.data
     assert data.meter == METER and data.has_received
